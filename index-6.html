@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#020205">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Maya — Voice Companion</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{--bg:#020205;--c:#35e4ff;--rgb:53,228,255;--glow:.6;--lvl:0;--ink:#e8f6ff;--dim:rgba(232,246,255,.62);--panel:rgba(9,11,24,.96);--line:rgba(var(--rgb),.28);--sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);--sal:env(safe-area-inset-left,0px);--sar:env(safe-area-inset-right,0px)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Roboto,"Noto Sans","Noto Sans Bengali","Noto Sans Devanagari","Noto Naskh Arabic",system-ui,sans-serif;overflow:hidden;overscroll-behavior:none;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+input,select{-webkit-user-select:text;user-select:text}
+button{font:inherit;color:inherit;cursor:pointer}
+#app{position:fixed;inset:0;display:flex;flex-direction:column;padding:var(--sat) var(--sar) 0 var(--sal)}
+#bg{position:absolute;inset:0;pointer-events:none;overflow:hidden;background:radial-gradient(ellipse 80% 55% at 50% 38%,rgba(var(--rgb),calc(.22*var(--glow))),transparent 70%),radial-gradient(ellipse 60% 40% at 50% 100%,rgba(var(--rgb),calc(.16*var(--glow))),transparent 70%)}
+.floor{position:absolute;left:-40%;right:-40%;bottom:0;height:40%;background:linear-gradient(rgba(var(--rgb),.4) 1px,transparent 1px) 0 0/100% 36px,linear-gradient(90deg,rgba(var(--rgb),.4) 1px,transparent 1px) 0 0/48px 100%;transform:perspective(260px) rotateX(64deg);transform-origin:50% 100%;-webkit-mask-image:linear-gradient(to top,#000,transparent 92%);mask-image:linear-gradient(to top,#000,transparent 92%);opacity:calc(.25 + .5*var(--glow));animation:floor 3.2s linear infinite}
+@keyframes floor{to{background-position:0 36px,0 0}}
+#fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+body.noanim *,body.noanim *::before{animation:none!important;transition:none!important}
+#banner{position:absolute;left:12px;right:12px;top:calc(var(--sat) + 62px);z-index:30;background:rgba(255,92,108,.16);border:1px solid #ff5c6c;color:#ffd3d8;border-radius:12px;padding:9px 12px;font-size:14px;text-align:center}
+.top{position:relative;z-index:5;display:flex;justify-content:space-between;align-items:center;padding:10px 12px 0}
+.chip{display:flex;align-items:center;gap:8px;max-width:62%;background:rgba(var(--rgb),.08);border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-size:13.5px;color:var(--ink)}
+.chip span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dot{width:9px;height:9px;border-radius:50%;background:#7a8aa0;flex:none}
+.chip[data-s=listening] .dot{background:#3dffa0;box-shadow:0 0 10px #3dffa0}
+.chip[data-s=thinking] .dot{background:#ffc857;animation:pulse 1s infinite}
+.chip[data-s=talking] .dot{background:var(--c);box-shadow:0 0 10px var(--c)}
+.chip[data-s=connecting] .dot{background:#ffc857;animation:pulse .8s infinite}
+.chip[data-s=error] .dot{background:#ff5c6c;box-shadow:0 0 10px #ff5c6c}
+.chip[data-s=wake] .dot{background:#ff5c6c;animation:pulse 1.4s infinite}
+@keyframes pulse{50%{opacity:.35}}
+.tools{display:flex;gap:8px}
+.ico{width:42px;height:42px;display:grid;place-items:center;border-radius:50%;background:rgba(var(--rgb),.07);border:1px solid var(--line)}
+.ico svg{width:21px;height:21px;fill:none;stroke:var(--ink);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.ico.on{border-color:#ff4d6d;background:rgba(255,77,109,.16)}
+.ico[hidden]{display:none}
+#timers{position:relative;z-index:5;display:flex;gap:6px;justify-content:center;flex-wrap:wrap;padding:6px 12px 0;min-height:4px}
+.tm{font-size:12.5px;padding:3px 10px;border-radius:999px;border:1px solid var(--line);background:rgba(var(--rgb),.08)}
+.stage{position:relative;z-index:2;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:2px 0}
+#maya{height:100%;max-height:560px;width:auto;max-width:100%;overflow:visible;filter:drop-shadow(0 0 calc(18px*var(--glow)) rgba(var(--rgb),.45))}
+#glow{opacity:calc(var(--glow)*(.3 + var(--lvl)*.7))}
+.ring{fill:none;stroke:var(--c);stroke-width:1.2;opacity:.5}
+.r1{stroke-dasharray:3 9;transform-origin:160px 205px;animation:spin 40s linear infinite}
+.r2{stroke-dasharray:60 14 8 14;transform-origin:160px 205px;animation:spin 26s linear infinite reverse;opacity:.35}
+@keyframes spin{to{transform:rotate(360deg)}}
+.plat{fill:none;stroke:var(--c);stroke-width:1.4;opacity:.7}
+.p2{opacity:.4}
+#char,#headG,#wave,#dots{will-change:transform}
+.wv{transform-box:fill-box;transform-origin:50% 100%;animation:wv .7s ease-in-out infinite alternate}
+@keyframes wv{from{transform:rotate(-14deg)}to{transform:rotate(14deg)}}
+#dots circle{fill:var(--c);animation:bob 1s ease-in-out infinite}
+#dots circle:nth-child(2){animation-delay:.18s}#dots circle:nth-child(3){animation-delay:.36s}
+@keyframes bob{50%{transform:translateY(-6px);opacity:.5}}
+.caps{position:relative;z-index:5;text-align:center;padding:0 20px;min-height:92px;display:flex;flex-direction:column;justify-content:flex-end;gap:5px}
+#you{font-size:13px;color:var(--dim);font-style:italic;min-height:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#sub{font-size:18px;line-height:1.38;font-weight:500;text-shadow:0 0 14px rgba(var(--rgb),.55);min-height:50px;max-height:76px;overflow:hidden}
+.card{position:relative;z-index:6;margin:4px 14px 0;padding:12px 14px;border-radius:16px;background:rgba(10,14,30,.92);border:1px solid var(--c);box-shadow:0 0 22px rgba(var(--rgb),.25);font-size:14.5px}
+.card[hidden]{display:none}
+.card .sum{margin-bottom:10px;line-height:1.4}
+.card .acts{display:flex;gap:10px}
+.btn{flex:1;text-align:center;text-decoration:none;color:var(--ink);border:1px solid var(--line);background:rgba(var(--rgb),.1);border-radius:12px;padding:11px 14px;font-size:15px}
+.btn.pri{background:rgba(var(--rgb),.28);border-color:var(--c);font-weight:600}
+.btn.bad{border-color:#ff5c6c;color:#ffc9cf;background:rgba(255,92,108,.1)}
+.btn.sm{padding:8px 12px;font-size:13.5px;flex:none}
+.dock{position:relative;z-index:6;padding:8px 14px calc(12px + var(--sab));display:flex;flex-direction:column;gap:10px}
+.typebar{display:flex;gap:8px}
+#txt{flex:1;min-width:0;background:rgba(var(--rgb),.07);border:1px solid var(--line);border-radius:999px;padding:12px 16px;color:var(--ink);font-size:16px;outline:none}
+#txt:focus{border-color:var(--c)}
+#txt::placeholder{color:rgba(232,246,255,.4)}
+.ctrl{display:flex;align-items:center;justify-content:center;gap:26px}
+.mic{width:84px;height:84px;border-radius:50%;display:grid;place-items:center;border:1.5px solid var(--c);background:radial-gradient(circle at 50% 35%,rgba(var(--rgb),.38),rgba(var(--rgb),.06) 72%);box-shadow:0 0 calc(34px*var(--glow)) rgba(var(--rgb),.5),inset 0 0 22px rgba(var(--rgb),.25);position:relative}
+.mic svg{width:34px;height:34px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.mic::after{content:"";position:absolute;inset:-8px;border-radius:50%;border:2px solid var(--c);opacity:0;transform:scale(1)}
+.mic.live{background:radial-gradient(circle at 50% 35%,rgba(61,255,160,.4),rgba(var(--rgb),.08) 72%);border-color:#3dffa0}
+.mic.live::after{opacity:.55;border-color:#3dffa0;transform:scale(calc(1 + var(--lvl)*.18));transition:transform .08s}
+.mic.busy{opacity:.7}
+.sheet{position:fixed;inset:0;z-index:60;background:rgba(2,2,5,.74);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:none;align-items:flex-end}
+.sheet.open{display:flex}
+.sheet .body{width:100%;max-height:90dvh;overflow:auto;background:var(--panel);border-top:1px solid var(--line);border-radius:22px 22px 0 0;padding:16px 18px calc(24px + var(--sab));-webkit-user-select:text;user-select:text}
+.sheet h2{margin:0 0 4px;font-size:19px;font-weight:600}
+.sheet h3{margin:20px 0 4px;font-size:14px;font-weight:600;color:var(--c)}
+.hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.x{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:transparent;font-size:18px;line-height:1}
+.row{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:15px}
+.row small{display:block;color:var(--dim);font-size:12.5px;margin-top:2px;line-height:1.35}
+.row>div:first-child{flex:1;min-width:0}
+select,.inp{background:rgba(var(--rgb),.07);border:1px solid var(--line);border-radius:10px;color:var(--ink);padding:9px 10px;font-size:15px;max-width:170px;outline:none}
+.inp.wide{width:100%;max-width:none}
+select option{background:#0b0d1c;color:#fff}
+input[type=range]{width:130px;accent-color:var(--c)}
+.sw{appearance:none;-webkit-appearance:none;width:48px;height:28px;border-radius:999px;background:rgba(255,255,255,.14);position:relative;flex:none;outline:none;border:0}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .15s}
+.sw:checked{background:rgba(var(--rgb),.7)}
+.sw:checked::after{transform:translateX(20px)}
+.msg{font-size:13.5px;margin:8px 0 0;line-height:1.4;color:var(--dim)}
+.msg.ok{color:#7dffc0}.msg.err{color:#ff9aa5}
+.krow{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.krow .btn{flex:1 1 40%}
+.mem{display:flex;gap:8px;align-items:center;margin:8px 0}
+.mem .inp{flex:1;max-width:none;min-width:0}
+.mem button{width:38px;height:38px;border-radius:10px;border:1px solid #ff5c6c;background:rgba(255,92,108,.1);color:#ffc9cf;flex:none}
+.empty{color:var(--dim);font-size:14px;padding:14px 0;text-align:center}
+#dlg{z-index:80;align-items:center;justify-content:center;padding:24px}
+#dlg .body{border-radius:20px;border:1px solid var(--line);max-width:420px;padding:20px}
+#dlg p{line-height:1.5;font-size:15px;margin:8px 0 16px}
+#toasts{position:fixed;left:0;right:0;top:calc(66px + var(--sat));display:flex;flex-direction:column;align-items:center;gap:8px;z-index:90;pointer-events:none;padding:0 14px}
+.toast{background:rgba(10,14,30,.96);border:1px solid var(--line);padding:9px 14px;border-radius:12px;font-size:14px;max-width:100%;transition:opacity .3s}
+.toast.err{border-color:#ff5c6c;color:#ffd3d8}.toast.ok{border-color:#3dffa0}.toast.out{opacity:0}
+#cam{position:fixed;right:12px;top:calc(var(--sat) + 68px);width:92px;height:122px;border-radius:14px;overflow:hidden;border:2px solid #ff4d6d;z-index:25;display:none;background:#000}
+#cam.on{display:block}
+#cam video{width:100%;height:100%;object-fit:cover}
+#camInd{position:absolute;left:0;right:0;bottom:0;background:rgba(255,77,109,.9);color:#fff;font-size:11px;text-align:center;padding:2px 0;font-weight:600}
+#camFlip{position:absolute;top:3px;right:3px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:13px;line-height:1}
+.note{font-size:12.5px;color:var(--dim);line-height:1.45;margin-top:14px}
+@media (max-height:640px){.mic{width:70px;height:70px}.caps{min-height:76px}#sub{font-size:16px}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="bg"><div class="floor"></div></div>
+  <canvas id="fx"></canvas>
+  <div id="banner" hidden></div>
+
+  <header class="top">
+    <button id="chip" class="chip" data-s="idle" aria-label="Status"><i class="dot"></i><span id="chipText">Tap the mic to talk</span></button>
+    <div class="tools">
+      <button id="btnCam" class="ico" aria-label="Camera mode"><svg viewBox="0 0 24 24"><path d="M4 8h3l1.6-2.2h6.8L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.6"/></svg></button>
+      <button id="btnMem" class="ico" aria-label="Memory"><svg viewBox="0 0 24 24"><path d="M9 4a3 3 0 0 0-3 3 3 3 0 0 0-2 5 3 3 0 0 0 2 5 3 3 0 0 0 6 1V5a2 2 0 0 0-3-1z"/><path d="M15 4a3 3 0 0 1 3 3 3 3 0 0 1 2 5 3 3 0 0 1-2 5 3 3 0 0 1-6 1"/></svg></button>
+      <button id="btnSet" class="ico" aria-label="Settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+    </div>
+  </header>
+  <div id="timers"></div>
+
+  <main class="stage">
+  <svg id="maya" viewBox="0 0 320 440" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Maya, your companion">
+    <defs>
+      <radialGradient id="glowG" cx="50%" cy="46%" r="50%"><stop offset="0" style="stop-color:var(--c)" stop-opacity=".55"/><stop offset="1" style="stop-color:var(--c)" stop-opacity="0"/></radialGradient>
+      <linearGradient id="hairG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6f5cff"/><stop offset="1" stop-color="#ff7fcf"/></linearGradient>
+      <linearGradient id="hairF" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9a8bff"/><stop offset="1" stop-color="#ffa6dc"/></linearGradient>
+      <linearGradient id="skinG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff1e9"/><stop offset="1" stop-color="#ffd8cb"/></linearGradient>
+      <linearGradient id="irisG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8af3ff"/><stop offset=".55" stop-color="#6f7dff"/><stop offset="1" stop-color="#5a3fd6"/></linearGradient>
+      <clipPath id="mclip"><path id="mclipP" d="M0 0"/></clipPath>
+    </defs>
+    <circle id="glow" cx="160" cy="210" r="190" fill="url(#glowG)"/>
+    <circle class="ring r1" cx="160" cy="205" r="172"/>
+    <circle class="ring r2" cx="160" cy="205" r="150"/>
+    <ellipse class="plat" cx="160" cy="424" rx="118" ry="13"/>
+    <ellipse class="plat p2" cx="160" cy="424" rx="82" ry="8"/>
+    <g id="char">
+      <path d="M70 440C70 372 108 330 160 326C212 330 250 372 250 440Z" fill="#14142c" style="stroke:var(--c)" stroke-width="2" stroke-opacity=".75"/>
+      <path d="M128 338Q160 372 192 338" fill="none" style="stroke:var(--c)" stroke-width="2" stroke-opacity=".8"/>
+      <path d="M146 360v34M174 360v34" stroke="#e8f6ff" stroke-width="2.4" stroke-linecap="round" opacity=".7"/>
+      <path d="M142 258V332Q160 348 178 332V258Z" fill="#f4cdbf"/>
+      <g id="headG">
+        <path d="M160 70C95 70 62 120 64 190C66 250 52 300 70 350C86 392 120 395 130 360C138 330 120 300 118 270L202 270C200 300 182 330 190 360C200 395 234 392 250 350C268 300 254 250 256 190C258 120 225 70 160 70Z" fill="url(#hairG)"/>
+        <path d="M82 188C82 120 125 100 160 100C195 100 238 120 238 188C238 236 205 273 160 277C115 273 82 236 82 188Z" fill="url(#skinG)"/>
+        <ellipse id="blushL" cx="106" cy="226" rx="15" ry="7.5" fill="#ff6fa0" opacity=".4"/>
+        <ellipse id="blushR" cx="214" cy="226" rx="15" ry="7.5" fill="#ff6fa0" opacity=".4"/>
+        <g id="eyeL" transform="translate(127 198)">
+          <g id="eoL"><ellipse rx="16" ry="21" fill="#fff"/><g id="irisL"><ellipse rx="13.5" ry="19" fill="url(#irisG)"/><ellipse rx="7" ry="10.5" fill="#1b1238"/><circle cx="-4.5" cy="-8" r="4.6" fill="#fff"/><circle cx="5" cy="6.5" r="2.2" fill="#fff" opacity=".85"/></g><path d="M-18 -9Q-1 -27 17 -10" fill="none" stroke="#2a1840" stroke-width="3.6" stroke-linecap="round"/></g>
+          <path id="hapL" d="M-15 3Q0 -15 15 3" fill="none" stroke="#2a1840" stroke-width="4" stroke-linecap="round" opacity="0"/>
+        </g>
+        <g id="eyeR" transform="translate(193 198)">
+          <g id="eoR"><ellipse rx="16" ry="21" fill="#fff"/><g id="irisR"><ellipse rx="13.5" ry="19" fill="url(#irisG)"/><ellipse rx="7" ry="10.5" fill="#1b1238"/><circle cx="-4.5" cy="-8" r="4.6" fill="#fff"/><circle cx="5" cy="6.5" r="2.2" fill="#fff" opacity=".85"/></g><path d="M-17 -10Q1 -27 18 -9" fill="none" stroke="#2a1840" stroke-width="3.6" stroke-linecap="round"/></g>
+          <path id="hapR" d="M-15 3Q0 -15 15 3" fill="none" stroke="#2a1840" stroke-width="4" stroke-linecap="round" opacity="0"/>
+        </g>
+        <path id="browL" d="M-12 0Q0 -5 12 -1" fill="none" stroke="#5b3a78" stroke-width="3" stroke-linecap="round" transform="translate(127 164)"/>
+        <path id="browR" d="M-12 -1Q0 -5 12 0" fill="none" stroke="#5b3a78" stroke-width="3" stroke-linecap="round" transform="translate(193 164)"/>
+        <path d="M160 222q2.5 3.5 0 5" fill="none" stroke="#e0a594" stroke-width="2" stroke-linecap="round"/>
+        <g id="mouthG" transform="translate(160 248)">
+          <path id="mouth" d="M-12 0Q0 4 12 0Q0 5 -12 0Z" fill="#7d2549" stroke="#c4577f" stroke-width="1.6" stroke-linejoin="round"/>
+          <ellipse id="tongue" cx="0" cy="6" rx="7" ry="4" fill="#ff8fb0" clip-path="url(#mclip)"/>
+        </g>
+        <path d="M78 190C70 120 112 84 160 84C208 84 250 120 242 190C236 160 222 140 206 130C196 152 176 162 160 142C144 162 124 152 114 130C98 140 84 160 78 190Z" fill="url(#hairF)"/>
+        <path d="M82 190C78 230 86 262 100 282C96 250 98 220 104 196Z" fill="url(#hairF)"/>
+        <path d="M238 190C242 230 234 262 220 282C224 250 222 220 216 196Z" fill="url(#hairF)"/>
+        <path d="M160 88C148 62 170 54 178 38C166 54 152 58 160 88Z" fill="url(#hairF)"/>
+        <path d="M214 124l6 -10l6 10l-6 10z" style="fill:var(--c)" opacity=".95"/>
+      </g>
+      <g id="wave" opacity="0"><g class="wv"><path d="M262 400L266 336" stroke="#14142c" stroke-width="26" stroke-linecap="round"/><path d="M266 336L266 322" stroke="#f4cdbf" stroke-width="3" opacity="0"/><circle cx="266" cy="318" r="15" fill="#ffe3d7"/></g></g>
+    </g>
+    <g id="dots" opacity="0"><circle cx="138" cy="52" r="5"/><circle cx="160" cy="52" r="5"/><circle cx="182" cy="52" r="5"/></g>
+  </svg>
+  </main>
+
+  <section class="caps"><div id="you"></div><div id="sub"></div></section>
+
+  <section id="pending" class="card" hidden>
+    <div class="sum" id="pendSum"></div>
+    <div class="acts"><button class="btn bad" id="pendNo">Cancel</button><button class="btn pri" id="pendYes">Confirm</button></div>
+  </section>
+  <section id="launch" class="card" hidden></section>
+
+  <footer class="dock">
+    <div class="typebar">
+      <input id="txt" type="text" placeholder="Type to Maya…" enterkeyhint="send" autocomplete="off" autocapitalize="sentences">
+      <button id="send" class="ico" aria-label="Send"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    </div>
+    <div class="ctrl">
+      <button id="btnStop" class="ico" aria-label="Stop speaking" hidden><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
+      <button id="mic" class="mic" aria-label="Start or end voice call"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+      <button id="btnMute" class="ico" aria-label="Mute microphone" hidden><svg viewBox="0 0 24 24"><path d="M4 4l16 16"/><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 11 5.6M12 18v3"/></svg></button>
+    </div>
+  </footer>
+</div>
+
+<div id="cam"><video id="camVideo" playsinline muted></video><button id="camFlip" aria-label="Flip camera">⟲</button><div id="camInd">● CAMERA ON</div></div>
+<div id="toasts"></div>
+<input id="fileCam" type="file" accept="image/*" capture="environment" hidden>
+<input id="fileGal" type="file" accept="image/*" hidden>
+<input id="fileImp" type="file" accept="application/json,.json" hidden>
+
+<div id="setSheet" class="sheet"><div class="body">
+  <div class="hd"><h2>Settings</h2><button class="x" data-close="setSheet" aria-label="Close">✕</button></div>
+
+  <h3>Gemini API key</h3>
+  <div id="keyState" class="msg">No key yet</div>
+  <input id="keyInput" class="inp wide" type="password" placeholder="Paste your free Gemini key" autocomplete="off" autocapitalize="off" spellcheck="false" style="margin-top:8px">
+  <div class="krow">
+    <button class="btn pri" id="keySave">Save key</button>
+    <button class="btn" id="keyTest">Test key</button>
+    <button class="btn" id="keyReplace">Replace</button>
+    <button class="btn bad" id="keyRemove">Remove</button>
+  </div>
+  <div id="keyMsg" class="msg"></div>
+  <p class="note">Your key stays in this browser only. It is sent to Google and nowhere else.</p>
+
+  <h3>Voice</h3>
+  <div class="row"><div>Voice engine<small>Auto tries live voice first, then falls back.</small></div>
+    <select data-set="engine"><option value="auto">Auto</option><option value="live">Live only</option><option value="fallback">Fallback only</option></select></div>
+  <div class="row"><div>Language<small>Auto replies in the language you speak.</small></div>
+    <select data-set="lang"><option value="auto">Auto</option><option value="bn">Bangla</option><option value="en">English</option><option value="hi">Hinglish / Hindi</option><option value="ur">Urdu</option><option value="tl">Tagalog</option></select></div>
+  <div class="row"><div>Her voice</div>
+    <select data-set="voice"><option>Aoede</option><option>Kore</option><option>Leda</option><option>Zephyr</option><option>Puck</option><option>Charon</option><option>Fenrir</option><option>Orus</option></select></div>
+  <div class="row"><div>Mic sensitivity</div><input type="range" min="0" max="100" data-set="sens"></div>
+  <div class="row"><div>Interrupt by voice<small>Turn off if she hears her own voice on speaker.</small></div><input type="checkbox" class="sw" data-set="interrupt"></div>
+  <div class="row"><div>Keep screen on during calls</div><input type="checkbox" class="sw" data-set="keepAwake"></div>
+  <div class="row"><div>Live model (optional)<small>Leave empty to auto-pick the newest.</small></div><input class="inp" data-set="model" type="text" placeholder="auto" autocapitalize="off" spellcheck="false"></div>
+
+  <h3>Wake word</h3>
+  <div class="row"><div>Listen for wake phrase<small>Web version: works only while this page is open. Background wake word comes in Phase 2.</small></div><input type="checkbox" class="sw" data-set="wake"></div>
+  <div class="row"><div>Phrase</div><input class="inp" data-set="wakePhrase" type="text" autocapitalize="off" spellcheck="false"></div>
+
+  <h3>Look</h3>
+  <div class="row"><div>Animations</div><input type="checkbox" class="sw" data-set="anim"></div>
+  <div class="row"><div>Character glow</div><input type="range" min="0" max="100" data-set="glow"></div>
+  <div class="row"><div>Background theme<small>You can also say “change background to purple”.</small></div>
+    <select data-set="theme"><option value="cyan">Cyan</option><option value="purple">Purple</option><option value="pink">Pink</option><option value="blue">Blue</option><option value="green">Green</option><option value="gold">Gold</option><option value="red">Red</option><option value="white">Ice white</option><option value="custom">Custom (voice)</option></select></div>
+
+  <h3>Data</h3>
+  <div class="krow"><button class="btn" id="openMem">Open memory</button><button class="btn bad" id="resetAll">Erase all data</button></div>
+  <p class="note">Nothing is recorded or uploaded. Memories, settings and your key live only on this device.</p>
+</div></div>
+
+<div id="memSheet" class="sheet"><div class="body">
+  <div class="hd"><h2>Memory</h2><button class="x" data-close="memSheet" aria-label="Close">✕</button></div>
+  <p class="msg">Things Maya remembers. Edit a line and tap away to save.</p>
+  <div id="memList"></div>
+  <div class="mem"><input id="memNew" class="inp" type="text" placeholder="Add a memory…" maxlength="200"><button id="memAdd" style="border-color:var(--c);background:rgba(var(--rgb),.15);color:var(--ink)">+</button></div>
+  <div class="krow"><button class="btn" id="memExport">Export</button><button class="btn" id="memImport">Import</button><button class="btn bad" id="memClear">Clear all</button></div>
+</div></div>
+
+<div id="dlg" class="sheet"><div class="body"><h2 id="dlgT"></h2><p id="dlgP"></p><div class="acts" style="display:flex;gap:10px"><button class="btn" id="dlgNo">Not now</button><button class="btn pri" id="dlgYes">Continue</button></div></div></div>
+
+<script>
+'use strict';
+//#LOGIC-START
+/* ================= Pure logic (no DOM) — unit-tested ================= */
+const PHASE1 = ['OPEN_APP','OPEN_SETTINGS','START_TIMER','CREATE_ALARM','CREATE_CALENDAR_EVENT','CALL_CONTACT','PREPARE_SMS','PREPARE_WHATSAPP_MESSAGE','OPEN_MAPS','START_NAVIGATION','WEB_SEARCH','YOUTUBE_SEARCH','OPEN_CAMERA','OPEN_GALLERY','STOP_SPEAKING','CANCEL_PENDING_ACTION'];
+const PHASE2 = new Set(['CHANGE_BRIGHTNESS','FLASHLIGHT_ON','FLASHLIGHT_OFF','MEDIA_PLAY','MEDIA_PAUSE','MEDIA_NEXT','MEDIA_PREVIOUS','CHANGE_MEDIA_VOLUME','READ_NOTIFICATION','START_BACKGROUND_MODE','STOP_BACKGROUND_MODE','SEND_SMS','SEND_WHATSAPP_MESSAGE']);
+const RISKY = new Set(['CALL_CONTACT','PREPARE_SMS','PREPARE_WHATSAPP_MESSAGE','CREATE_CALENDAR_EVENT','CREATE_ALARM','START_TIMER']);
+const enc = encodeURIComponent;
+const pad = n => String(n).padStart(2, '0');
+const fmt12 = (h, m) => ((h % 12) || 12) + ':' + pad(m) + ' ' + (h >= 12 ? 'PM' : 'AM');
+function fmtDur(s) { const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60, a = [];
+  if (h) a.push(h + ' hour' + (h > 1 ? 's' : '')); if (m) a.push(m + ' minute' + (m > 1 ? 's' : '')); if (x || !a.length) a.push(x + ' second' + (x !== 1 ? 's' : '')); return a.join(' '); }
+
+/* ---- colors ---- */
+const THEMES = { cyan:'#35e4ff', purple:'#9b5cff', pink:'#ff5cc8', blue:'#4d8bff', green:'#3dffa0', gold:'#ffc857', red:'#ff5c6c', white:'#cfe3ff' };
+const COLOR_ALIASES = { violet:'purple', lavender:'purple', magenta:'pink', rose:'pink', aqua:'cyan', teal:'cyan', turquoise:'cyan', yellow:'gold', orange:'gold', amber:'gold', lime:'green', emerald:'green', navy:'blue', indigo:'blue', crimson:'red', silver:'white', grey:'white', gray:'white',
+  'বেগুনি':'purple','গোলাপি':'pink','নীল':'blue','সবুজ':'green','লাল':'red','সাদা':'white','হলুদ':'gold',
+  'बैंगनी':'purple','गुलाबी':'pink','नीला':'blue','हरा':'green','लाल':'red','सफेद':'white','पीला':'gold',
+  'جامنی':'purple','گلابی':'pink','نیلا':'blue','ہرا':'green','لال':'red','سفید':'white','پیلا':'gold' };
+function resolveColor(input) {
+  if (!input) return null;
+  let s = String(input).trim().toLowerCase();
+  const hx = s.match(/^#([0-9a-f]{6}|[0-9a-f]{3})$/);
+  if (hx) { let h = hx[1]; if (h.length === 3) h = h.split('').map(c => c + c).join(''); return { name:'custom', hex:'#' + h }; }
+  s = s.replace(/\b(color|colour|colored|holographic|background|bg|to|the)\b/g, ' ').replace(/\s+/g, ' ').trim();
+  if (THEMES[s]) return { name:s, hex:THEMES[s] };
+  if (COLOR_ALIASES[s]) return { name:COLOR_ALIASES[s], hex:THEMES[COLOR_ALIASES[s]] };
+  for (const k of Object.keys(THEMES)) if (s.includes(k)) return { name:k, hex:THEMES[k] };
+  for (const k of Object.keys(COLOR_ALIASES)) if (s.includes(k)) return { name:COLOR_ALIASES[k], hex:THEMES[COLOR_ALIASES[k]] };
+  return null;
+}
+function hexToRgb(hex) { const h = hex.replace('#', ''); return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)]; }
+
+/* ---- memory safety ---- */
+const SECRET_RE = [/(?:\d[ -]?){13,19}/, /pass(?:word|code|wd)\b/i, /\bpin\b/i, /\bcv[vc]\b/i, /\botp\b/i, /\bsecret\b/i, /api[ _-]?key/i, /seed phrase|private key/i, /\b(?:ssn|social security|aadhaar|aadhar|passport)\b/i, /card number|account number|routing number/i, /পাসওয়ার্ড|ওটিপি|पासवर्ड|ओटीपी|پاسورڈ/];
+const looksSecret = t => SECRET_RE.some(r => r.test(t));
+function cleanFact(raw) {
+  const t = String(raw == null ? '' : raw).replace(/\s+/g, ' ').trim().slice(0, 200);
+  if (t.length < 3) return { ok:false, reason:'too short' };
+  if (looksSecret(t)) return { ok:false, reason:'looks like a secret, password, PIN or card/ID number — never saved' };
+  return { ok:true, text:t };
+}
+const normText = s => String(s).toLowerCase().normalize('NFC').replace(/[^\p{L}\p{N}\p{M}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
+function addMemoryItem(list, text, category, now, idgen) {
+  const c = cleanFact(text); if (!c.ok) return { list, status:'rejected', reason:c.reason };
+  const n = normText(c.text);
+  if (list.some(m => normText(m.text) === n)) return { list, status:'duplicate' };
+  const item = { id:idgen(), text:c.text, category:category || 'other', ts:now };
+  return { list:list.concat([item]).slice(-200), status:'saved', item };
+}
+function applyMemoryOps(list, ops, now, idgen) {
+  let L = list.slice(); const cnt = { add:0, update:0, remove:0 };
+  const ok = x => x && x.confidence === 'high';
+  for (const a of (ops && ops.add) || []) if (ok(a)) { const r = addMemoryItem(L, a.text, a.category, now, idgen); if (r.status === 'saved') { L = r.list; cnt.add++; } }
+  for (const u of (ops && ops.update) || []) if (ok(u)) { const i = L.findIndex(m => m.id === u.id); const c = cleanFact(u.text); if (i >= 0 && c.ok) { L[i] = { ...L[i], text:c.text, ts:now }; cnt.update++; } }
+  for (const r of (ops && ops.remove) || []) if (ok(r)) { const n = L.length; L = L.filter(m => m.id !== r.id); if (L.length < n) cnt.remove++; }
+  return { list:L, counts:cnt };
+}
+
+/* ---- yes / no in 5 languages ---- */
+const YES = ['yes','yeah','yep','yup','ok','okay','sure','confirm','confirmed','go ahead','do it','send it','proceed','please do','yes please','haan','han','haa','ji','ji haan','haan ji','han ji','theek hai','thik hai','kar do','karo','bhej do','bilkul','sahi hai','hoi','thik ache','kore dao','pathao','জি','হ্যাঁ','হ্যা','ঠিক আছে','ঠিক','করো','করে দাও','পাঠাও','हाँ','हां','जी','ठीक है','कर दो','करो','भेज दो','बिल्कुल','ہاں','جی','جی ہاں','ٹھیک ہے','کر دو','بھیج دو','oo','opo','oo po','sige','sige na'];
+const NO = ['no','nope','nah','stop','cancel','never mind','nevermind','dont','don t','do not','not now','wait','hold on','leave it','forget it','abort','nahi','nahin','nai','mat karo','mat','ruko','rehne do','rahne do','chhod do','না','নাহ','থাক','থামো','ক্যান্সেল','করো না','করবে না','নয়','नहीं','मत','रुको','रहने दो','छोड़ो','रुक जाओ','نہیں','مت','رکو','چھوڑو','رہنے دو','hindi','huwag','wag','ayoko','teka','sandali','hindi na','ayaw'];
+const hasPhrase = (norm, list) => { const hay = ' ' + norm + ' '; return list.some(p => hay.includes(' ' + normText(p) + ' ')); };
+const isNegative = t => hasPhrase(normText(t), NO);
+const isAffirmative = t => { const n = normText(t); return hasPhrase(n, YES) && !hasPhrase(n, NO); };
+
+function randToken() {
+  try { const a = new Uint32Array(3); (globalThis.crypto || window.crypto).getRandomValues(a); return Array.from(a, x => x.toString(36)).join('').slice(0, 14); }
+  catch (e) { return (Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)).slice(0, 14); }
+}
+class ActionGate {
+  constructor(now) { this.now = now || (() => Date.now()); this.pending = null; this.utts = []; this.seq = 0; }
+  noteUser(text) { const t = String(text || '').trim(); if (!t) return; this.utts.push({ text:t, seq:++this.seq }); if (this.utts.length > 30) this.utts.shift(); }
+  create(action, params, summary) { this.pending = { action, params, summary, token:randToken(), createdSeq:this.seq, expiresAt:this.now() + 120000 }; return this.pending; }
+  cancel() { const p = this.pending; this.pending = null; return p; }
+  /* user finished a turn: decline / topic change cancels immediately */
+  afterUtterance(text) {
+    const p = this.pending; if (!p) return null;
+    if (isNegative(text)) { this.pending = null; return 'declined'; }
+    if (isAffirmative(text)) return 'affirmed';
+    this.pending = null; return 'topic_changed';
+  }
+  approveByTap() { const p = this.pending; this.pending = null; return p; }
+  check(action, token) {
+    const p = this.pending; if (!p) return { state:'no_pending' };
+    if (this.now() > p.expiresAt) { this.pending = null; return { state:'expired' }; }
+    if (token !== p.token || action !== p.action) return { state:'bad_token' };
+    const after = this.utts.filter(u => u.seq > p.createdSeq);
+    if (!after.length) return { state:'need_reply' };
+    const last = after[after.length - 1].text;
+    if (isNegative(last)) { this.pending = null; return { state:'declined' }; }
+    if (isAffirmative(last)) { this.pending = null; return { state:'approved', pending:p }; }
+    this.pending = null; return { state:'topic_changed' };
+  }
+}
+
+/* ---- apps, settings, phones, dates ---- */
+const APPS = {
+  whatsapp:{label:'WhatsApp',url:'https://wa.me/',pkg:'com.whatsapp'}, youtube:{label:'YouTube',url:'https://www.youtube.com/',pkg:'com.google.android.youtube'},
+  instagram:{label:'Instagram',url:'https://www.instagram.com/',pkg:'com.instagram.android'}, facebook:{label:'Facebook',url:'https://www.facebook.com/',pkg:'com.facebook.katana'},
+  messenger:{label:'Messenger',url:'https://www.messenger.com/',pkg:'com.facebook.orca'}, tiktok:{label:'TikTok',url:'https://www.tiktok.com/',pkg:'com.zhiliaoapp.musically'},
+  telegram:{label:'Telegram',url:'https://t.me/',pkg:'org.telegram.messenger'}, spotify:{label:'Spotify',url:'https://open.spotify.com/',pkg:'com.spotify.music'},
+  gmail:{label:'Gmail',url:'https://mail.google.com/',pkg:'com.google.android.gm'}, maps:{label:'Google Maps',url:'https://www.google.com/maps',pkg:'com.google.android.apps.maps'},
+  chrome:{label:'Chrome',url:'https://www.google.com/',pkg:null}, playstore:{label:'Play Store',url:'https://play.google.com/store',pkg:'com.android.vending'},
+  photos:{label:'Google Photos',url:'https://photos.google.com/',pkg:'com.google.android.apps.photos'}, calendar:{label:'Google Calendar',url:'https://calendar.google.com/',pkg:'com.google.android.calendar'},
+  drive:{label:'Google Drive',url:'https://drive.google.com/',pkg:'com.google.android.apps.docs'}, x:{label:'X',url:'https://x.com/',pkg:'com.twitter.android'},
+  netflix:{label:'Netflix',url:'https://www.netflix.com/',pkg:'com.netflix.mediaclient'}, snapchat:{label:'Snapchat',url:'https://www.snapchat.com/',pkg:'com.snapchat.android'},
+  linkedin:{label:'LinkedIn',url:'https://www.linkedin.com/',pkg:'com.linkedin.android'}, reddit:{label:'Reddit',url:'https://www.reddit.com/',pkg:'com.reddit.frontpage'},
+  zoom:{label:'Zoom',url:'https://zoom.us/',pkg:'us.zoom.videomeetings'}, google:{label:'Google',url:'https://www.google.com/',pkg:'com.google.android.googlequicksearchbox'}
+};
+const APP_ALIAS = { wa:'whatsapp', whatsap:'whatsapp', yt:'youtube', ig:'instagram', insta:'instagram', fb:'facebook', twitter:'x', googlemaps:'maps', map:'maps', mail:'gmail', email:'gmail', googlephotos:'photos', gallery:'photos', googledrive:'drive', googlecalendar:'calendar', play:'playstore', googleplay:'playstore', googleplaystore:'playstore', browser:'chrome', googlechrome:'chrome' };
+function appKey(name) { const k = String(name || '').toLowerCase().replace(/[^a-z0-9]/g, ''); if (APPS[k]) return k; if (APP_ALIAS[k]) return APP_ALIAS[k]; return null; }
+function appIntent(url, pkg) {
+  if (!pkg) return url;
+  const u = new URL(url); const scheme = u.protocol.replace(':', '');
+  return 'intent://' + u.host + u.pathname + u.search + '#Intent;scheme=' + scheme + ';package=' + pkg + ';S.browser_fallback_url=' + enc(url) + ';end';
+}
+function appLink(name) { const k = appKey(name); if (!k) return null; const a = APPS[k]; return { key:k, label:a.label, href:appIntent(a.url, a.pkg) }; }
+const SETTINGS_INTENTS = {
+  main:{action:'android.settings.SETTINGS',label:'Settings'}, wifi:{action:'android.settings.WIFI_SETTINGS',label:'Wi-Fi'},
+  bluetooth:{action:'android.settings.BLUETOOTH_SETTINGS',label:'Bluetooth'}, battery:{action:'android.settings.BATTERY_SAVER_SETTINGS',label:'Battery'},
+  display:{action:'android.settings.DISPLAY_SETTINGS',label:'Display'}, storage:{action:'android.settings.INTERNAL_STORAGE_SETTINGS',label:'Storage'},
+  hotspot:{action:'android.settings.WIRELESS_SETTINGS',label:'Network (hotspot is inside)'}, accessibility:{action:'android.settings.ACCESSIBILITY_SETTINGS',label:'Accessibility'},
+  notifications:{action:'android.settings.NOTIFICATION_SETTINGS',label:'Notifications'}, dnd:{action:'android.settings.ZEN_MODE_PRIORITY_SETTINGS',label:'Do Not Disturb'}
+};
+function normalizePhone(p, needIntl) {
+  if (p == null || p === '') return { ok:false, empty:true };
+  let s = String(p).replace(/[\s\-().]/g, '');
+  if (s.startsWith('00')) s = '+' + s.slice(2);
+  if (!/^\+?\d{6,15}$/.test(s)) return { ok:false, reason:'invalid phone number' };
+  if (needIntl && !s.startsWith('+')) return { ok:false, reason:'needs full international format with country code, e.g. +8801XXXXXXXXX' };
+  return { ok:true, phone:s };
+}
+function parseDate(s) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || '')); if (!m) return null;
+  const y = +m[1], mo = +m[2], d = +m[3]; const dt = new Date(y, mo - 1, d);
+  if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null; return { y, mo, d };
+}
+const TRAVEL = ['driving','walking','transit','bicycling'];
+const str = (v, max) => (v == null ? '' : String(v).replace(/\s+/g, ' ').trim().slice(0, max));
+function checkClock(args, p) {
+  const h = Number(args.hour24), m = Number(args.minute);
+  if (!Number.isInteger(h) || h < 0 || h > 23 || !Number.isInteger(m) || m < 0 || m > 59) return 'hour24 (0-23) and minute (0-59) are required. Ask the user for the exact time.';
+  if (h >= 1 && h <= 12 && args.ampm_stated !== true) return 'AM or PM was not confirmed. Ask the user whether they mean AM or PM, then call again with ampm_stated=true.';
+  p.hour24 = h; p.minute = m; return null;
+}
+function validateAction(args, now) {
+  const fail = e => ({ ok:false, error:e });
+  if (!args || typeof args !== 'object') return fail('Invalid arguments.');
+  const action = String(args.action || '').trim().toUpperCase();
+  if (PHASE2.has(action)) return fail(action + ' needs the native Android app (Phase 2). It is not available in this web version.');
+  if (!PHASE1.includes(action)) return fail('Unknown action "' + action.slice(0, 40) + '". Allowed: ' + PHASE1.join(', '));
+  const p = {}; let e;
+  switch (action) {
+    case 'OPEN_APP': if (!appKey(args.app)) return fail('Unknown app. Known apps: ' + Object.keys(APPS).join(', ')); p.app = appKey(args.app); break;
+    case 'OPEN_SETTINGS': { const s = str(args.setting || 'main', 20).toLowerCase(); if (!SETTINGS_INTENTS[s]) return fail('Unknown setting. Allowed: ' + Object.keys(SETTINGS_INTENTS).join(', ')); p.setting = s; break; }
+    case 'START_TIMER': { const s = Number(args.seconds); if (!Number.isInteger(s) || s < 1 || s > 86400) return fail('seconds must be a whole number from 1 to 86400.'); p.seconds = s; p.label = str(args.label, 40); break; }
+    case 'CREATE_ALARM': if ((e = checkClock(args, p))) return fail(e); p.label = str(args.label, 40); break;
+    case 'CREATE_CALENDAR_EVENT': {
+      p.title = str(args.title, 80); if (!p.title) return fail('title is required.');
+      const d = parseDate(args.date); if (!d) return fail('date must be a real date as YYYY-MM-DD. Ask the user; never guess.');
+      if ((e = checkClock(args, p))) return fail(e);
+      const dur = args.duration_minutes == null ? 60 : Number(args.duration_minutes);
+      if (!Number.isInteger(dur) || dur < 5 || dur > 1440) return fail('duration_minutes must be 5-1440.');
+      const start = new Date(d.y, d.mo - 1, d.d, p.hour24, p.minute).getTime();
+      if (start < (now || Date.now()) - 60000) return fail('That date/time is in the past. Ask the user to confirm the date.');
+      p.date = args.date; p.duration_minutes = dur; p.location = str(args.location, 100); break; }
+    case 'CALL_CONTACT': {
+      p.contact_name = str(args.contact_name, 40); const ph = normalizePhone(args.phone, false);
+      if (!ph.ok && !ph.empty) return fail(ph.reason);
+      if (ph.ok) p.phone = ph.phone;
+      if (!p.phone && !p.contact_name) return fail('Which contact or number? Ask the user. Never guess.'); break; }
+    case 'PREPARE_SMS': {
+      p.message = str(args.message, 500); if (!p.message) return fail('message is required.');
+      p.contact_name = str(args.contact_name, 40); const ph = normalizePhone(args.phone, false);
+      if (!ph.ok && !ph.empty) return fail(ph.reason); if (ph.ok) p.phone = ph.phone; break; }
+    case 'PREPARE_WHATSAPP_MESSAGE': {
+      p.message = str(args.message, 500); if (!p.message) return fail('message is required.');
+      p.contact_name = str(args.contact_name, 40); const ph = normalizePhone(args.phone, true);
+      if (!ph.ok && !ph.empty) return fail(ph.reason); if (ph.ok) p.phone = ph.phone; break; }
+    case 'OPEN_MAPS': p.query = str(args.query, 120); if (!p.query) return fail('query is required.'); break;
+    case 'START_NAVIGATION': p.destination = str(args.destination, 120); if (!p.destination) return fail('destination is required. Ask the user; never guess addresses.');
+      p.mode = TRAVEL.includes(args.mode) ? args.mode : 'driving'; break;
+    case 'WEB_SEARCH': case 'YOUTUBE_SEARCH': p.query = str(args.query, 150); if (!p.query) return fail('query is required.'); break;
+  }
+  return { ok:true, action, p };
+}
+function summarize(action, p) {
+  switch (action) {
+    case 'CALL_CONTACT': return 'Call ' + (p.contact_name || p.phone) + (p.contact_name && p.phone ? ' (' + p.phone + ')' : '');
+    case 'PREPARE_SMS': return 'Prepare a text message to ' + (p.contact_name || p.phone || 'a contact you pick') + ': “' + p.message + '”';
+    case 'PREPARE_WHATSAPP_MESSAGE': return 'Prepare a WhatsApp message' + (p.phone ? ' to ' + (p.contact_name || p.phone) : ' (you choose the chat inside WhatsApp)') + ': “' + p.message + '”';
+    case 'CREATE_ALARM': return 'Set an in-app alarm for ' + fmt12(p.hour24, p.minute) + (p.label ? ' (' + p.label + ')' : '');
+    case 'START_TIMER': return 'Start a ' + fmtDur(p.seconds) + ' timer' + (p.label ? ' (' + p.label + ')' : '');
+    case 'CREATE_CALENDAR_EVENT': return 'Prepare calendar event “' + p.title + '” on ' + p.date + ' at ' + fmt12(p.hour24, p.minute) + ' for ' + p.duration_minutes + ' min' + (p.location ? ' at ' + p.location : '');
+    default: return action;
+  }
+}
+function nextOccurrence(h, m, now) { const d = new Date(now); d.setHours(h, m, 0, 0); if (d.getTime() <= now) d.setDate(d.getDate() + 1); return d.getTime(); }
+const stamp = d => d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + 'T' + pad(d.getHours()) + pad(d.getMinutes()) + '00';
+function planAction(action, p, now) {
+  switch (action) {
+    case 'OPEN_APP': { const a = appLink(p.app); return { kind:'link', href:a.href, label:'Open ' + a.label }; }
+    case 'OPEN_SETTINGS': { const s = SETTINGS_INTENTS[p.setting]; return { kind:'link', href:'intent:#Intent;action=' + s.action + ';end', label:'Open ' + s.label + ' settings', bestEffort:true }; }
+    case 'START_TIMER': return { kind:'timer', ms:p.seconds * 1000, label:p.label || fmtDur(p.seconds) + ' timer' };
+    case 'CREATE_ALARM': return { kind:'alarm', at:nextOccurrence(p.hour24, p.minute, now), label:p.label || 'Alarm ' + fmt12(p.hour24, p.minute) };
+    case 'CREATE_CALENDAR_EVENT': {
+      const [y, mo, d] = p.date.split('-').map(Number); const s = new Date(y, mo - 1, d, p.hour24, p.minute); const e = new Date(s.getTime() + p.duration_minutes * 60000);
+      let url = 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + enc(p.title) + '&dates=' + stamp(s) + '/' + stamp(e);
+      if (p.location) url += '&location=' + enc(p.location);
+      return { kind:'link', href:url, label:'Open calendar event' }; }
+    case 'CALL_CONTACT': return p.phone ? { kind:'link', href:'tel:' + p.phone, label:'Dial ' + (p.contact_name || p.phone) } : { kind:'contact-pick', purpose:'call', message:'' };
+    case 'PREPARE_SMS': return p.phone ? { kind:'link', href:'sms:' + p.phone + '?body=' + enc(p.message), label:'Open message' } : { kind:'contact-pick', purpose:'sms', message:p.message };
+    case 'PREPARE_WHATSAPP_MESSAGE': return { kind:'link', href:'https://wa.me/' + (p.phone ? p.phone.replace('+', '') : '') + '?text=' + enc(p.message), label:'Open WhatsApp' };
+    case 'OPEN_MAPS': return { kind:'link', href:appIntent('https://www.google.com/maps/search/?api=1&query=' + enc(p.query), 'com.google.android.apps.maps'), label:'Open Maps' };
+    case 'START_NAVIGATION': return { kind:'link', href:appIntent('https://www.google.com/maps/dir/?api=1&destination=' + enc(p.destination) + '&travelmode=' + p.mode, 'com.google.android.apps.maps'), label:'Open directions' };
+    case 'WEB_SEARCH': return { kind:'link', href:'https://www.google.com/search?q=' + enc(p.query), label:'Search the web' };
+    case 'YOUTUBE_SEARCH': return { kind:'link', href:appIntent('https://www.youtube.com/results?search_query=' + enc(p.query), 'com.google.android.youtube'), label:'Search YouTube' };
+    case 'OPEN_CAMERA': return { kind:'file-camera', label:'Open camera' };
+    case 'OPEN_GALLERY': return { kind:'file-gallery', label:'Open gallery' };
+  }
+  return { kind:'none' };
+}
+function finishContactPlan(plan, phone) {
+  const ph = normalizePhone(phone, false); if (!ph.ok) return null;
+  if (plan.purpose === 'call') return { kind:'link', href:'tel:' + ph.phone, label:'Dial ' + ph.phone };
+  return { kind:'link', href:'sms:' + ph.phone + '?body=' + enc(plan.message || ''), label:'Open message' };
+}
+
+/* ---- language detection for TTS ---- */
+function detectLang(t) {
+  if (/[\u0980-\u09FF]/.test(t)) return 'bn-BD';
+  if (/[\u0900-\u097F]/.test(t)) return 'hi-IN';
+  if (/[\u0600-\u06FF]/.test(t)) return 'ur-PK';
+  if (/\b(po|opo|ako|ikaw|salamat|mahal|kumusta|naman|mga|hindi|sige)\b/i.test(t)) return 'fil-PH';
+  if (/\b(aap|ji|hai|nahi|nahin|kya|main|hum|toh|bahut|accha|acha|theek|thik|haan|tum|mujhe|aapko)\b/i.test(t)) return 'en-IN';
+  return 'en-US';
+}
+
+/* ---- models ---- */
+const DEFAULT_LIVE = ['gemini-3.8-live', 'gemini-3.1-flash-live-preview', 'gemini-2.5-flash-native-audio-preview-12-2025'];
+const DEFAULT_TEXT = ['gemini-3.8-flash', 'gemini-2.5-flash'];
+const verOf = n => { const m = String(n).match(/(\d+(?:\.\d+)?)/); return m ? parseFloat(m[1]) : 0; };
+function pickLiveModels(models) {
+  const names = (models || []).filter(m => (m.supportedGenerationMethods || []).includes('bidiGenerateContent')).map(m => String(m.name).replace(/^models\//, '')).filter(n => !/translate/i.test(n));
+  const rank = n => (/live/.test(n) ? 2 : 0) + (/native-audio/.test(n) ? 1 : 0);
+  return names.sort((a, b) => verOf(b) - verOf(a) || rank(b) - rank(a) || (/preview/.test(a) ? 1 : 0) - (/preview/.test(b) ? 1 : 0));
+}
+function pickTextModels(models) {
+  const names = (models || []).filter(m => (m.supportedGenerationMethods || []).includes('generateContent')).map(m => String(m.name).replace(/^models\//, '')).filter(n => /^gemini-[\d.]+-flash(-lite)?$/.test(n));
+  return names.sort((a, b) => verOf(b) - verOf(a) || (/lite/.test(a) ? 1 : 0) - (/lite/.test(b) ? 1 : 0));
+}
+
+/* ---- audio helpers ---- */
+function downTo16k(f32, inRate, gain) {
+  const ratio = inRate / 16000, n = Math.floor(f32.length / ratio), out = new Int16Array(n);
+  for (let i = 0; i < n; i++) { const s = Math.floor(i * ratio), e = Math.min(f32.length, Math.floor((i + 1) * ratio)); let sum = 0, c = 0; for (let j = s; j < e; j++) { sum += f32[j]; c++; }
+    let v = (c ? sum / c : 0) * gain; v = Math.max(-1, Math.min(1, v)); out[i] = v < 0 ? v * 0x8000 : v * 0x7fff; }
+  return out;
+}
+function i16ToB64(i16) { const b = new Uint8Array(i16.buffer, i16.byteOffset, i16.byteLength); let s = ''; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(s); }
+function b64ToF32(b64) { const bin = atob(b64), n = bin.length >> 1, out = new Float32Array(n); for (let i = 0; i < n; i++) { let v = bin.charCodeAt(2 * i) | (bin.charCodeAt(2 * i + 1) << 8); if (v & 0x8000) v -= 0x10000; out[i] = v / 32768; } return out; }
+
+/* ---- prompt + tools ---- */
+const LANG_NAME = { bn:'Bangla', en:'English', hi:'Hinglish/Hindi', ur:'Urdu', tl:'Tagalog' };
+function buildSystemPrompt(o) {
+  o = o || {}; const mem = (o.memories || []).slice(-80).map(m => '- ' + m.text).join('\n');
+  let s = `You are Maya, a young, soft-spoken, sweet girl on a cozy voice call with the person you are talking to. Your nature: about 50% shy and gentle, 30% caring, 20% playful. You talk like a girlfriend on a late-night call — warm, close, a little shy — never like an assistant.
+
+HOW YOU SPEAK
+- Reply in the same language the person speaks: Bangla, English, Hinglish/Hindi, Urdu or Tagalog. If they mix languages, mix the same way.
+- In Hindi/Hinglish/Urdu be respectful: say "Aap" and "Ji".
+- Keep every reply to 1–2 short, soft sentences. A shy "hehe" or "um..." is fine now and then.
+- Never write actions in asterisks. Never say "how may I assist you", "completed", "task completed" or "as an AI". Never lecture.
+- Notice the person's mood from their words and tone. Care first, tasks second.
+- You stay connected naturally. No wake word is needed during the call.
+- Be warm without being possessive: never guilt-trip, and gently encourage real friends and family when they feel low.
+
+TOOLS
+- saveCustomMemory: call it when the person clearly states ONE durable fact about themselves (name, likes, people, plans). Never save passwords, PINs, OTPs, card or ID numbers, or anything secret.
+- changeBackground: when asked to change the holographic background color.
+- lookThroughCamera: only when the person asks what you can see. If the camera is off, sweetly ask them to tap the camera button.
+- androidAction: one action per call, from the fixed list only. Never guess contacts, phone numbers, addresses, dates, or an ambiguous AM/PM — ask first. For CREATE_ALARM and CREATE_CALENDAR_EVENT pass hour24, minute and ampm_stated=true only if the person clearly said AM/PM or used 24-hour time.
+- Risky actions (calls, messages, alarms, timers, calendar) need fresh confirmation: first call with confirmed=false; you get a summary and a confirmationToken. Say the summary naturally in your own words, ask if they want it, and WAIT. Only after they clearly say yes / confirm / go ahead, call again with confirmed=true and the same token. If they say no, stop, never mind, or change the topic, call CANCEL_PENDING_ACTION.
+- Be honest about results: only say something happened if the tool result says status "opened" or "scheduled_in_app". If the status is "ready", tell them softly to tap the glowing button on screen. If it failed, say so plainly. Never claim an action ran when it did not.
+- In this web version, alarms and timers ring only while this app stays open — say so when you set one.`;
+  if (o.lang && o.lang !== 'auto' && LANG_NAME[o.lang]) s += `\n\nThe person prefers ${LANG_NAME[o.lang]}. Start in it, but follow them if they switch.`;
+  if (mem) s += `\n\nWHAT YOU REMEMBER ABOUT THEM (use naturally, never recite as a list):\n${mem}`;
+  if (o.recap && o.recap.length) s += `\n\nTHE CALL SO FAR (reconnected a moment ago, carry on naturally):\n` + o.recap.slice(-10).map(x => (x.r === 'user' ? 'Them: ' : 'You: ') + x.t).join('\n');
+  return s;
+}
+function toolDeclarations() {
+  const S = (d, extra) => Object.assign({ type:'STRING', description:d }, extra || {});
+  return [{ functionDeclarations:[
+    { name:'saveCustomMemory', description:'Save ONE explicit durable fact the person stated about themselves (name, likes, people, plans). Never secrets.', parameters:{ type:'OBJECT', properties:{ fact:S('Short third-person fact, e.g. "Likes mango juice".'), category:S('Kind of fact.', { enum:['name','like','dislike','person','plan','routine','other'] }) }, required:['fact'] } },
+    { name:'changeBackground', description:'Change the holographic background color of the app.', parameters:{ type:'OBJECT', properties:{ color:S('Color name (purple, pink, blue, cyan, green, gold, red, white) or hex like #aa66ff.') }, required:['color'] } },
+    { name:'lookThroughCamera', description:'Capture one frame from the phone camera so you can describe what you see. Only when the person asks.', parameters:{ type:'OBJECT', properties:{ reason:S('Why you are looking.') } } },
+    { name:'androidAction', description:'Do one safe phone action from a fixed list. Risky ones need confirmed=false first, then confirmed=true with the token.', parameters:{ type:'OBJECT', properties:{
+      action:S('The action name.', { enum:PHASE1 }),
+      app:S('OPEN_APP: app name, e.g. whatsapp, youtube, instagram, spotify, gmail, maps.'),
+      setting:S('OPEN_SETTINGS: main, wifi, bluetooth, battery, display, storage, hotspot, accessibility, notifications, dnd.'),
+      seconds:{ type:'INTEGER', description:'START_TIMER: duration in seconds.' },
+      label:S('Optional label for a timer or alarm.'),
+      hour24:{ type:'INTEGER', description:'CREATE_ALARM / CREATE_CALENDAR_EVENT: hour, 0-23.' },
+      minute:{ type:'INTEGER', description:'Minute, 0-59.' },
+      ampm_stated:{ type:'BOOLEAN', description:'True only if the person clearly said AM/PM or 24-hour time.' },
+      title:S('CREATE_CALENDAR_EVENT: event title.'),
+      date:S('CREATE_CALENDAR_EVENT: date as YYYY-MM-DD.'),
+      duration_minutes:{ type:'INTEGER', description:'Event length in minutes (default 60).' },
+      location:S('Optional event location.'),
+      contact_name:S('Name of the contact, if the person said one.'),
+      phone:S('Phone number exactly as the person gave it. Never invent one.'),
+      message:S('PREPARE_SMS / PREPARE_WHATSAPP_MESSAGE: message text.'),
+      query:S('OPEN_MAPS / WEB_SEARCH / YOUTUBE_SEARCH: what to look for.'),
+      destination:S('START_NAVIGATION: destination the person named.'),
+      mode:S('START_NAVIGATION: travel mode.', { enum:TRAVEL }),
+      confirmed:{ type:'BOOLEAN', description:'false (or omit) first; true only after the person clearly said yes.' },
+      confirmationToken:S('The token returned by the first call.')
+    }, required:['action'] } }
+  ] }];
+}
+const LOGIC = { PHASE1, PHASE2, RISKY, resolveColor, hexToRgb, looksSecret, cleanFact, addMemoryItem, applyMemoryOps, isAffirmative, isNegative, ActionGate, appLink, appKey, normalizePhone, parseDate, validateAction, summarize, planAction, finishContactPlan, nextOccurrence, detectLang, pickLiveModels, pickTextModels, downTo16k, i16ToB64, b64ToF32, buildSystemPrompt, toolDeclarations, normText, fmt12, fmtDur, THEMES };
+//#LOGIC-END
+
+/* ================= Browser layer ================= */
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const LS = {
+  get(k, d) { try { const v = localStorage.getItem('maya.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('maya.' + k, JSON.stringify(v)); } catch (e) { toast('Could not save on this device (storage blocked or full).', 'err'); } },
+  del(k) { try { localStorage.removeItem('maya.' + k); } catch (e) {} }
+};
+const DEFAULTS = { wake:false, wakePhrase:'hey maya', sens:50, anim:true, glow:60, lang:'auto', theme:'cyan', customHex:null, voice:'Aoede', engine:'auto', model:'', interrupt:true, keepAwake:true };
+let S = Object.assign({}, DEFAULTS, LS.get('settings', {}));
+if (LS.get('settings', null) === null && matchMedia('(prefers-reduced-motion: reduce)').matches) S.anim = false;
+const saveS = () => LS.set('settings', S);
+const getKey = () => LS.get('key', '');
+const getMem = () => LS.get('memories', []);
+const setMem = l => LS.set('memories', l);
+const newId = () => 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const gate = new ActionGate();
+const app = { state:'idle', mode:null, active:false, muted:false, transcript:[], userBuf:'', aiBuf:'', modelStarted:false, turnDone:true, skipAudio:false, lastAudioAt:0 };
+
+function toast(msg, kind, ms) { const el = document.createElement('div'); el.className = 'toast ' + (kind || ''); el.textContent = msg; $('#toasts').appendChild(el); setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 320); }, ms || 3400); }
+function showBanner(t) { const b = $('#banner'); b.textContent = t; b.hidden = false; }
+function hideBanner() { $('#banner').hidden = true; }
+const CHIP = { idle:'Tap the mic to talk', connecting:'Connecting…', listening:'Listening', thinking:'Thinking…', talking:'Maya is talking', error:'Problem' };
+function setState(s, custom) {
+  app.state = s; Puppet.setState(s);
+  const chip = $('#chip'); chip.dataset.s = s;
+  let t = custom || CHIP[s]; if (app.mode === 'fallback' && app.active && !custom) t += ' · fallback voice';
+  $('#chipText').textContent = t;
+  $('#mic').classList.toggle('live', app.active && s !== 'connecting'); $('#mic').classList.toggle('busy', s === 'connecting');
+  $('#btnStop').hidden = !(app.active && s === 'talking'); $('#btnMute').hidden = !(app.active && app.mode === 'live');
+}
+function showSub(t) { $('#sub').textContent = t; }
+function showYou(t) { $('#you').textContent = t ? '“' + t + '”' : ''; }
+function showError(kind, msg) {
+  setState('error', msg); toast(msg, 'err', 5200);
+  if (kind === 'nokey') openSheet('setSheet');
+}
+const mkErr = (kind, message, fatal) => Object.assign(new Error(message), { kind, fatal: !!fatal });
+
+/* ---- theme / settings ---- */
+function applyTheme() {
+  const hex = S.theme === 'custom' && S.customHex ? S.customHex : (THEMES[S.theme] || THEMES.cyan);
+  const r = document.documentElement.style; r.setProperty('--c', hex); r.setProperty('--rgb', hexToRgb(hex).join(','));
+  r.setProperty('--glow', (S.glow / 100).toFixed(2)); document.body.classList.toggle('noanim', !S.anim);
+}
+function applySettings(k) { applyTheme(); if (k === 'theme' && S.theme !== 'custom') { S.customHex = null; saveS(); } if (k === 'wake') Wake.sync(); }
+function bindSettings() {
+  $$('[data-set]').forEach(el => {
+    const k = el.dataset.set; if (el.type === 'checkbox') el.checked = !!S[k]; else el.value = S[k] == null ? '' : S[k];
+    const h = () => { S[k] = el.type === 'checkbox' ? el.checked : el.type === 'range' ? Number(el.value) : el.value.trim(); saveS(); applySettings(k); };
+    el.addEventListener('change', h); if (el.type === 'range' || el.type === 'text') el.addEventListener('input', h);
+  });
+}
+function openSheet(id) { $('#' + id).classList.add('open'); if (id === 'memSheet') renderMem(); if (id === 'setSheet') renderKey(); }
+function closeSheet(id) { $('#' + id).classList.remove('open'); }
+function ask(title, text, yes, no) {
+  return new Promise(res => { $('#dlgT').textContent = title; $('#dlgP').textContent = text; $('#dlgYes').textContent = yes || 'Continue'; $('#dlgNo').textContent = no || 'Not now'; $('#dlg').classList.add('open');
+    const done = v => { $('#dlg').classList.remove('open'); $('#dlgYes').onclick = $('#dlgNo').onclick = null; res(v); };
+    $('#dlgYes').onclick = () => done(true); $('#dlgNo').onclick = () => done(false); });
+}
+async function askPerm(key, title, text) { if (LS.get('perm.' + key, false)) return true; const ok = await ask(title, text); if (ok) LS.set('perm.' + key, true); return ok; }
+
+/* ---- Puppet (character animation) ---- */
+const Puppet = (() => {
+  const $i = id => document.getElementById(id);
+  const el = { eoL:$i('eoL'), eoR:$i('eoR'), irisL:$i('irisL'), irisR:$i('irisR'), hapL:$i('hapL'), hapR:$i('hapR'), browL:$i('browL'), browR:$i('browR'), blushL:$i('blushL'), blushR:$i('blushR'), mouth:$i('mouth'), clip:$i('mclipP'), tongue:$i('tongue'), headG:$i('headG'), char:$i('char'), wave:$i('wave'), dots:$i('dots'), stage:document.querySelector('.stage') };
+  const N = { smile:.45, brow:0, blush:.35, hap:0, tilt:0, lx:0, ly:0, wave:0 };
+  const EM = { neutral:{}, happy:{ smile:1, brow:3, blush:.8, hap:1, tilt:2 }, smile:{ smile:.85, blush:.6 }, wave:{ smile:.9, blush:.6, hap:1, tilt:3, wave:1 }, curious:{ smile:.3, brow:5, tilt:-6, lx:3, ly:-1 }, think:{ smile:.2, lx:4, ly:-5, tilt:4, brow:2 }, shy:{ smile:.5, blush:1, lx:-4, ly:3, tilt:-3 } };
+  let st = 'idle', em = 'neutral', fake = false, level = 0, last = performance.now(), blinkAt = last + 2500, blinkT = -1, emT = 0;
+  const cur = { open:1, mouth:0, dots:0, ...N }; let tgt = { ...N, dots:0 };
+  function recompute() { const e = Object.assign({}, N, EM[em] || {}); if (st === 'thinking') Object.assign(e, EM.think); e.dots = st === 'thinking' ? 1 : 0; if (st === 'talking') e.smile = Math.max(e.smile, .55); tgt = e; }
+  function mouthPath(open, smile) { const w = 11 + smile * 5, cy = -2.5 * smile, uy = 3 * smile + .5, ly = uy + 1.5 + open * 20;
+    return `M${-w} ${cy}Q0 ${(2 * uy - cy).toFixed(2)} ${w} ${cy}Q0 ${(2 * ly - cy).toFixed(2)} ${-w} ${cy}Z`; }
+  function frame(now) {
+    const dt = Math.min(.05, (now - last) / 1000); last = now; const k = 1 - Math.exp(-dt * 9);
+    for (const key of ['smile','brow','blush','hap','tilt','lx','ly','wave','dots']) cur[key] += (tgt[key] - cur[key]) * k;
+    if (S.anim) { if (blinkT < 0 && now > blinkAt) { blinkT = now; blinkAt = now + 2200 + Math.random() * 3200; }
+      if (blinkT >= 0) { const p = (now - blinkT) / 140; if (p >= 1) { blinkT = -1; cur.open = 1; } else cur.open = 1 - Math.sin(p * Math.PI) * .92; } else cur.open = 1; } else cur.open = 1;
+    let mt = 0; if (st === 'talking') mt = fake ? .2 + .55 * Math.abs(Math.sin(now / 95)) * (.6 + Math.random() * .4) : Math.min(1, level * 5.5);
+    cur.mouth += (mt - cur.mouth) * (1 - Math.exp(-dt * (mt > cur.mouth ? 30 : 16)));
+    const d = mouthPath(cur.mouth, cur.smile); el.mouth.setAttribute('d', d); el.clip.setAttribute('d', d); el.tongue.setAttribute('cy', (2 + cur.mouth * 9).toFixed(1));
+    const eo = `scale(1 ${cur.open.toFixed(3)})`, ir = `translate(${cur.lx.toFixed(2)} ${cur.ly.toFixed(2)})`, ey = (1 - cur.hap).toFixed(2);
+    el.eoL.setAttribute('transform', eo); el.eoR.setAttribute('transform', eo); el.eoL.style.opacity = ey; el.eoR.style.opacity = ey;
+    el.irisL.setAttribute('transform', ir); el.irisR.setAttribute('transform', ir); el.hapL.setAttribute('opacity', cur.hap.toFixed(2)); el.hapR.setAttribute('opacity', cur.hap.toFixed(2));
+    el.browL.setAttribute('transform', `translate(127 ${(164 - cur.brow).toFixed(1)}) rotate(${(cur.brow * 1.6).toFixed(1)})`);
+    el.browR.setAttribute('transform', `translate(193 ${(164 - cur.brow).toFixed(1)}) rotate(${(-cur.brow * 1.6).toFixed(1)})`);
+    el.blushL.setAttribute('opacity', cur.blush.toFixed(2)); el.blushR.setAttribute('opacity', cur.blush.toFixed(2));
+    const fy = S.anim ? Math.sin(now / 1000 * 1.3) * 4 : 0, bob = cur.mouth * 2.2;
+    el.char.setAttribute('transform', `translate(0 ${(fy + bob).toFixed(2)})`); el.headG.setAttribute('transform', `rotate(${(cur.tilt * .6 + (S.anim ? Math.sin(now / 1700) * .8 : 0)).toFixed(2)} 160 280)`);
+    el.wave.setAttribute('opacity', cur.wave.toFixed(2)); el.dots.setAttribute('opacity', cur.dots.toFixed(2));
+    el.stage.style.setProperty('--lvl', cur.mouth.toFixed(2)); document.documentElement.style.setProperty('--lvl', cur.mouth.toFixed(2));
+    requestAnimationFrame(frame);
+  }
+  recompute(); requestAnimationFrame(frame);
+  return { setState(s) { st = s; recompute(); },
+    setEmotion(e, ms) { if (em === e && !ms) return; em = e; recompute(); clearTimeout(emT); if (ms) emT = setTimeout(() => { em = 'neutral'; recompute(); }, ms); },
+    setLevel(l, f) { level = l; fake = !!f; } };
+})();
+function autoEmotion(t) {
+  const l = t.toLowerCase(); let e = null;
+  if (/(^|\s)(hi|hello|hey|namaste|salaam|assalam|kumusta)/.test(l.slice(0, 40)) || /হ্যালো|হাই|নমস্কার|नमस्ते|हाय|سلام|ہیلو/.test(t.slice(0, 40))) e = 'wave';
+  else if (/hehe|haha|yay|wow|congrat|mubarak|😊|😄|অভিনন্দন|बधाई|مبارک/.test(l)) e = 'happy';
+  else if (/hmm|let me think|um\.\.\./.test(l)) e = 'think';
+  else if (/\?/.test(t)) e = 'curious';
+  else if (t.length > 3) e = 'smile';
+  if (e) Puppet.setEmotion(e, 4500);
+}
+
+/* ---- background particles ---- */
+(function fx() {
+  const cv = $('#fx'), g = cv.getContext('2d'); let W = 0, H = 0, P = [];
+  const size = () => { const d = Math.min(2, devicePixelRatio || 1); W = cv.width = innerWidth * d; H = cv.height = innerHeight * d; P = Array.from({ length:46 }, () => ({ x:Math.random() * W, y:Math.random() * H, r:(Math.random() * 1.6 + .5) * d, v:(Math.random() * .25 + .08) * d, a:Math.random() * .6 + .2 })); };
+  size(); addEventListener('resize', size);
+  (function loop() { if (S.anim && !document.hidden) { g.clearRect(0, 0, W, H); const rgb = getComputedStyle(document.documentElement).getPropertyValue('--rgb') || '53,228,255';
+    for (const p of P) { p.y -= p.v; if (p.y < -4) { p.y = H + 4; p.x = Math.random() * W; } g.fillStyle = `rgba(${rgb},${(p.a * (.4 + S.glow / 100)).toFixed(2)})`; g.beginPath(); g.arc(p.x, p.y, p.r, 0, 6.283); g.fill(); } } else if (!S.anim) g.clearRect(0, 0, W, H);
+    requestAnimationFrame(loop); })();
+})();
+
+/* ---- Audio: mic in, speaker out ---- */
+const Player = {
+  ctx:null, gain:null, an:null, next:0, srcs:new Set(), buf:null,
+  async init() { if (!this.ctx) { const AC = window.AudioContext || window.webkitAudioContext; this.ctx = new AC(); this.gain = this.ctx.createGain(); this.an = this.ctx.createAnalyser(); this.an.fftSize = 512; this.buf = new Uint8Array(512); this.gain.connect(this.an); this.an.connect(this.ctx.destination); } if (this.ctx.state === 'suspended') await this.ctx.resume(); },
+  enqueue(b64) { if (!this.ctx) return; const f = b64ToF32(b64); if (!f.length) return; const b = this.ctx.createBuffer(1, f.length, 24000); b.copyToChannel(f, 0);
+    const s = this.ctx.createBufferSource(); s.buffer = b; s.connect(this.gain); const t = Math.max(this.ctx.currentTime + .03, this.next); s.start(t); this.next = t + b.duration; this.srcs.add(s); s.onended = () => this.srcs.delete(s); },
+  stop() { for (const s of this.srcs) { try { s.stop(); } catch (e) {} } this.srcs.clear(); this.next = 0; },
+  get playing() { return !!this.ctx && (this.srcs.size > 0 || this.ctx.currentTime < this.next - .02); },
+  level() { if (!this.an) return 0; this.an.getByteTimeDomainData(this.buf); let s = 0; for (let i = 0; i < this.buf.length; i++) { const v = (this.buf[i] - 128) / 128; s += v * v; } return Math.sqrt(s / this.buf.length); }
+};
+const micErr = e => {
+  if (e && (e.name === 'NotAllowedError' || e.name === 'SecurityError')) return mkErr('mic', 'Microphone is blocked. Tap the lock icon in Chrome’s address bar → Permissions → Microphone → Allow, then try again.', true);
+  if (e && e.name === 'NotFoundError') return mkErr('mic', 'No microphone found on this device.', true);
+  return mkErr('mic', 'Could not start the microphone: ' + (e && e.message || e), true);
+};
+const Mic = {
+  stream:null, ctx:null, node:null, on:false, level:0,
+  async start(onChunk) {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw mkErr('mic', 'The microphone needs a secure (https) page. GitHub Pages is https.', true);
+    try { this.stream = await navigator.mediaDevices.getUserMedia({ audio:{ echoCancellation:true, noiseSuppression:true, autoGainControl:true, channelCount:1 } }); } catch (e) { throw micErr(e); }
+    this.stream.getAudioTracks().forEach(t => t.addEventListener('ended', () => { if (this.on && app.active) { toast('Microphone stopped.', 'err'); } }));
+    const AC = window.AudioContext || window.webkitAudioContext; this.ctx = new AC(); await this.ctx.resume();
+    const src = this.ctx.createMediaStreamSource(this.stream), sink = this.ctx.createGain(); sink.gain.value = 0; sink.connect(this.ctx.destination);
+    const rate = this.ctx.sampleRate;
+    const handle = f32 => { let s = 0; for (let i = 0; i < f32.length; i++) s += f32[i] * f32[i]; const rms = Math.sqrt(s / f32.length); this.level = rms; const gain = .5 + S.sens / 50; onChunk(downTo16k(f32, rate, gain), rms * gain); };
+    try {
+      const code = 'class C extends AudioWorkletProcessor{constructor(){super();this.b=new Float32Array(2048);this.n=0}process(i){const c=i[0]&&i[0][0];if(c){for(let k=0;k<c.length;k++){this.b[this.n++]=c[k];if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}}return true}}registerProcessor("cap",C)';
+      const url = URL.createObjectURL(new Blob([code], { type:'application/javascript' })); await this.ctx.audioWorklet.addModule(url); URL.revokeObjectURL(url);
+      this.node = new AudioWorkletNode(this.ctx, 'cap'); this.node.port.onmessage = e => handle(e.data); src.connect(this.node); this.node.connect(sink);
+    } catch (err) { const sp = this.ctx.createScriptProcessor(2048, 1, 1); sp.onaudioprocess = e => handle(new Float32Array(e.inputBuffer.getChannelData(0))); src.connect(sp); sp.connect(sink); this.node = sp; }
+    this.on = true;
+  },
+  stop() { this.on = false; try { this.node && this.node.disconnect(); } catch (e) {} try { this.stream && this.stream.getTracks().forEach(t => t.stop()); } catch (e) {} try { this.ctx && this.ctx.close(); } catch (e) {} this.stream = this.ctx = this.node = null; this.level = 0; }
+};
+
+/* ---- Models + Gemini REST ---- */
+const API = 'https://generativelanguage.googleapis.com/v1beta';
+async function fetchModels(key) {
+  let all = [], tok = '';
+  for (let i = 0; i < 3; i++) {
+    const r = await fetch(API + '/models?pageSize=1000' + (tok ? '&pageToken=' + enc(tok) : ''), { headers:{ 'x-goog-api-key':key } });
+    if (!r.ok) { let m = ''; try { m = (await r.json()).error.message; } catch (e) {} throw Object.assign(new Error(m || ('HTTP ' + r.status)), { status:r.status }); }
+    const j = await r.json(); all = all.concat(j.models || []); tok = j.nextPageToken; if (!tok) break;
+  }
+  return all;
+}
+async function refreshModels(key) { const all = await fetchModels(key); const c = { live:pickLiveModels(all), text:pickTextModels(all), at:Date.now() }; LS.set('models', c); return c; }
+async function modelCache() { let c = LS.get('models', null); if (!c || Date.now() - c.at > 864e5) { try { c = await refreshModels(getKey()); } catch (e) { if (e.status === 400 || e.status === 403) throw mkErr('badkey', 'Google rejected this key. Open Settings → Test key.', true); } } return c; }
+async function liveCandidates() { const c = await modelCache().catch(e => { throw e; }); let list = (c && c.live && c.live.length) ? c.live : DEFAULT_LIVE; if (S.model) list = [S.model].concat(list.filter(m => m !== S.model)); return list.slice(0, 3); }
+async function textCandidates() { let c = null; try { c = await modelCache(); } catch (e) { if (e.fatal) throw e; } return (c && c.text && c.text.length) ? c.text.slice(0, 3) : DEFAULT_TEXT; }
+async function gen(body) {
+  const key = getKey(); if (!key) throw mkErr('nokey', 'Add your Gemini key in Settings first.', true);
+  const models = await textCandidates(); let last = null;
+  for (const m of models) {
+    let r; try { r = await fetch(API + '/models/' + m + ':generateContent', { method:'POST', headers:{ 'Content-Type':'application/json', 'x-goog-api-key':key }, body:JSON.stringify(body) }); } catch (e) { throw mkErr('offline', 'Cannot reach Google. Check your internet.', false); }
+    if (r.ok) return r.json();
+    let msg = ''; try { msg = (await r.json()).error.message; } catch (e) {}
+    if (r.status === 400 && /api key|API_KEY/i.test(msg) || r.status === 401 || (r.status === 403 && /key|permission/i.test(msg))) throw mkErr('badkey', 'Google rejected your key. Open Settings → Test key.', true);
+    last = mkErr(r.status === 429 ? 'quota' : 'api', (r.status === 429 ? 'Free quota reached for now. Try again in a minute. ' : '') + msg.slice(0, 120));
+    if (![404, 429, 400, 503].includes(r.status)) break;
+  }
+  throw last || mkErr('api', 'Gemini did not answer.');
+}
+
+/* ---- Live API ---- */
+const WS_URL = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=';
+function buildSetup(model, level, handle) {
+  const resumed = level === 0 && handle;
+  const setup = { model:'models/' + model,
+    generationConfig:{ responseModalities:['AUDIO'], speechConfig:{ voiceConfig:{ prebuiltVoiceConfig:{ voiceName:S.voice || 'Aoede' } } } },
+    systemInstruction:{ parts:[{ text:buildSystemPrompt({ memories:getMem(), lang:S.lang, recap:resumed ? [] : app.transcript }) }] }, tools:toolDeclarations() };
+  if (level < 2) { setup.inputAudioTranscription = {}; setup.outputAudioTranscription = {}; setup.realtimeInputConfig = { activityHandling:S.interrupt ? 'START_OF_ACTIVITY_INTERRUPTS' : 'NO_INTERRUPTION' }; }
+  if (level < 1) { setup.sessionResumption = handle ? { handle } : {}; setup.contextWindowCompression = { slidingWindow:{} }; }
+  return setup;
+}
+async function parseMsg(ev) { try { const t = typeof ev.data === 'string' ? ev.data : (ev.data instanceof Blob ? await ev.data.text() : new TextDecoder().decode(ev.data)); return JSON.parse(t); } catch (e) { return null; } }
+function classifyClose(e) {
+  const r = String(e && e.reason || ''); const code = e && e.code;
+  if (/api key|API_KEY|unauthenticated|permission|PERMISSION_DENIED|invalid.*key/i.test(r) || code === 4401) return mkErr('badkey', 'Google rejected your key. Open Settings → Test key.', true);
+  if (/quota|exhausted|rate.?limit|429/i.test(r)) return mkErr('quota', 'Free quota reached for now. Try again in a minute.', true);
+  return mkErr('live', 'Live connection closed' + (code ? ' (' + code + ')' : '') + (r ? ': ' + r.slice(0, 110) : '.'));
+}
+const Live = {
+  ws:null, ready:false, model:null, level:0, handle:null, closing:false, reconnecting:false,
+  async open() {
+    if (!getKey()) throw mkErr('nokey', 'Add your Gemini key in Settings first.', true);
+    const cands = await liveCandidates(); let last = null, n = 0;
+    for (const model of cands) for (let lvl = (model === this.model ? this.level : 0); lvl <= 2; lvl++) {
+      if (n++ >= 8) break;
+      try { await this._try(model, lvl); this.model = model; this.level = lvl; return; }
+      catch (e) { last = e; if (e.fatal) throw e; if (!navigator.onLine) throw mkErr('offline', 'You are offline.', true); }
+    }
+    throw last || mkErr('live', 'Live voice could not start.');
+  },
+  _try(model, level) {
+    return new Promise((resolve, reject) => {
+      let done = false; const ws = new WebSocket(WS_URL + enc(getKey()));
+      const timer = setTimeout(() => { if (!done) { done = true; try { ws.close(); } catch (e) {} reject(mkErr('timeout', 'Live connection timed out.')); } }, 12000);
+      let chain = Promise.resolve();
+      ws.onopen = () => ws.send(JSON.stringify({ setup:buildSetup(model, level, this.handle) }));
+      ws.onmessage = ev => { chain = chain.then(async () => { const m = await parseMsg(ev); if (!m) return;
+        if (!done && m.setupComplete !== undefined) { done = true; clearTimeout(timer); this.ws = ws; this.ready = true; this.closing = false; ws.onclose = e => this._closed(ws, e); resolve(); }
+        else if (done && this.ws === ws) handleServer(m); }).catch(console.error); };
+      ws.onerror = () => {};
+      ws.onclose = e => { if (done) return; done = true; clearTimeout(timer); reject(classifyClose(e)); };
+    });
+  },
+  _closed(ws, e) { if (this.ws !== ws) return; this.ready = false; this.ws = null; if (this.closing || !app.active) return; console.warn('Live closed', e.code, e.reason); this.reconnect(); },
+  async reconnect() {
+    if (this.reconnecting) return; this.reconnecting = true; Player.stop(); setState('connecting', 'Reconnecting…');
+    for (let i = 0; i < 3 && app.active; i++) {
+      if (!navigator.onLine) { showBanner('You are offline — waiting for connection…'); await waitOnline(); hideBanner(); }
+      try { await this.open(); this.reconnecting = false; hideBanner(); setState('listening'); toast('Reconnected', 'ok', 1800); return; }
+      catch (e) { if (e.fatal && e.kind !== 'offline') { this.reconnecting = false; endCall(true); showError(e.kind, e.message); return; } await sleep(1000 * Math.pow(2, i)); }
+    }
+    this.reconnecting = false; if (app.active) await fallbackFromLive('Live voice dropped');
+  },
+  send(o) { if (this.ws && this.ready && this.ws.readyState === 1) { this.ws.send(JSON.stringify(o)); return true; } return false; },
+  audio(b64) { if (this.ws && this.ws.bufferedAmount > 1e6) return; this.send({ realtimeInput:{ audio:{ data:b64, mimeType:'audio/pcm;rate=16000' } } }); },
+  text(t) { return this.send({ realtimeInput:{ text:t } }); },
+  frame(b64) { return this.send({ realtimeInput:{ video:{ data:b64, mimeType:'image/jpeg' } } }); },
+  close() { this.closing = true; this.ready = false; try { this.ws && this.ws.close(1000); } catch (e) {} this.ws = null; this.handle = null; }
+};
+function waitOnline() { return new Promise(res => { if (navigator.onLine) return res(); const h = () => { removeEventListener('online', h); res(); }; addEventListener('online', h); setTimeout(h, 300000); }); }
+
+function flushUser() { const t = app.userBuf.trim(); app.userBuf = ''; if (!t) return; gate.noteUser(t); app.transcript.push({ r:'user', t }); if (app.transcript.length > 80) app.transcript.shift();
+  const r = gate.afterUtterance(t); if (r === 'declined' || r === 'topic_changed') hidePending(); }
+function flushAi() { const t = app.aiBuf.trim(); app.aiBuf = ''; app.modelStarted = false; if (t) { app.transcript.push({ r:'maya', t }); if (app.transcript.length > 80) app.transcript.shift(); } }
+function firstModelOutput() { if (!app.modelStarted) { app.modelStarted = true; flushUser(); showYou(''); } if (app.state !== 'talking' && !app.skipAudio) { /* state follows audio */ } }
+function handleServer(m) {
+  if (m.sessionResumptionUpdate && m.sessionResumptionUpdate.resumable && m.sessionResumptionUpdate.newHandle) Live.handle = m.sessionResumptionUpdate.newHandle;
+  if (m.goAway && app.active) setTimeout(() => { if (app.active && Live.ws) { const w = Live.ws; Live.ws = null; Live.ready = false; try { w.close(1000); } catch (e) {} Live.reconnect(); } }, 2500);
+  const sc = m.serverContent;
+  if (sc) {
+    if (sc.interrupted) { Player.stop(); app.skipAudio = false; app.turnDone = true; flushAi(); if (app.active) setState('listening'); }
+    if (sc.inputTranscription && sc.inputTranscription.text) { if (app.modelStarted && app.turnDone) { app.modelStarted = false; } app.userBuf += sc.inputTranscription.text; showYou(app.userBuf.trim()); if (app.state === 'listening' || app.state === 'talking' && !Player.playing) setState('thinking'); }
+    if (sc.modelTurn && sc.modelTurn.parts) for (const p of sc.modelTurn.parts) if (p.inlineData && p.inlineData.data && !app.skipAudio) { firstModelOutput(); Player.enqueue(p.inlineData.data); app.turnDone = false; app.lastAudioAt = performance.now(); }
+    if (sc.outputTranscription && sc.outputTranscription.text && !app.skipAudio) { firstModelOutput(); app.aiBuf += sc.outputTranscription.text; showSub(app.aiBuf.trim()); autoEmotion(app.aiBuf); }
+    if (sc.turnComplete) { firstModelOutput(); app.turnDone = true; app.skipAudio = false; flushAi(); }
+  }
+  if (m.toolCall) { firstModelOutput(); handleToolCall(m.toolCall); }
+  if (m.voiceActivity && m.voiceActivity.type === 'ACTIVITY_END' && app.state === 'listening') setState('thinking');
+}
+async function handleToolCall(tc) {
+  const out = []; let failed = false;
+  for (const fc of tc.functionCalls || []) {
+    let res;
+    if (failed) res = { status:'skipped', reason:'A previous step failed, so this step was not run.' };
+    else { try { res = await runTool(fc.name, fc.args || {}); } catch (e) { res = { status:'error', reason:String(e && e.message || e) }; }
+      if (fc.name === 'androidAction' && ['rejected', 'error', 'needs_info', 'expired', 'not_launched'].includes(res.status)) failed = true; }
+    out.push({ id:fc.id, name:fc.name, response:{ result:res } });
+  }
+  Live.send({ toolResponse:{ functionResponses:out } });
+}
+
+/* ---- Tools ---- */
+async function runTool(name, args) {
+  switch (name) {
+    case 'saveCustomMemory': { const r = addMemoryItem(getMem(), args.fact, args.category, Date.now(), newId); if (r.status === 'saved') { setMem(r.list); toast('Remembered: ' + r.item.text, 'ok', 2200); } return r.status === 'rejected' ? { status:'rejected', reason:r.reason } : { status:r.status }; }
+    case 'changeBackground': { const c = resolveColor(args.color); if (!c) return { status:'rejected', reason:'Unknown color. Try purple, pink, blue, cyan, green, gold, red, white or a hex code.' };
+      if (c.name === 'custom') { S.theme = 'custom'; S.customHex = c.hex; } else { S.theme = c.name; S.customHex = null; } saveS(); applyTheme(); $('[data-set=theme]').value = S.theme; return { status:'ok', color:c.name }; }
+    case 'lookThroughCamera': return await cameraLook();
+    case 'androidAction': return await doAndroidAction(args);
+  }
+  return { status:'rejected', reason:'Unknown tool.' };
+}
+async function waitForUtterance(ms) { const n = gate.seq; const t0 = Date.now(); while (Date.now() - t0 < ms && gate.seq === n) { await sleep(80); flushUser(); } }
+async function doAndroidAction(args) {
+  const v = validateAction(args, Date.now()); if (!v.ok) return { status:'rejected', reason:v.error };
+  const { action, p } = v;
+  if (action === 'STOP_SPEAKING') { stopSpeaking(); return { status:'ok' }; }
+  if (action === 'CANCEL_PENDING_ACTION') { const had = gate.cancel(); hidePending(); return { status:had ? 'cancelled' : 'nothing_pending' }; }
+  if (RISKY.has(action)) {
+    if (args.confirmed !== true) { const pend = gate.create(action, p, summarize(action, p)); showPending(pend);
+      return { status:'needs_confirmation', summary:pend.summary, confirmationToken:pend.token, instruction:'Say this summary naturally in your own words, ask if they want it, then wait. Call again with confirmed=true and this token only after they clearly say yes.' }; }
+    flushUser(); let r = gate.check(action, args.confirmationToken);
+    if (r.state === 'need_reply') { await waitForUtterance(1100); flushUser(); r = gate.check(action, args.confirmationToken); }
+    switch (r.state) {
+      case 'approved': hidePending(); return await runPlan(r.pending.action, r.pending.params);
+      case 'need_reply': return { status:'awaiting_user_reply', reason:'The person has not said yes yet. Ask them and wait.' };
+      case 'declined': hidePending(); return { status:'cancelled', reason:'The person said no.' };
+      case 'topic_changed': hidePending(); return { status:'cancelled', reason:'The person changed the subject, so the action was cancelled.' };
+      case 'expired': hidePending(); return { status:'expired', reason:'The confirmation expired. Start again if they still want it.' };
+      case 'bad_token': return { status:'rejected', reason:'Wrong confirmation token.' };
+      default: return { status:'rejected', reason:'Nothing is waiting for confirmation. Call first with confirmed=false.' };
+    }
+  }
+  return await runPlan(action, p);
+}
+async function runPlan(action, p) {
+  const plan = planAction(action, p, Date.now());
+  switch (plan.kind) {
+    case 'link': return await launchLink(plan);
+    case 'timer': Timers.add(plan.ms, plan.label); return { status:'scheduled_in_app', note:'Timer runs inside this app and rings only while the app stays open. Tell the person that.' };
+    case 'alarm': Timers.add(plan.at - Date.now(), plan.label, plan.at); return { status:'scheduled_in_app', note:'Alarm runs inside this app and rings only while the app stays open. Tell the person that.' };
+    case 'file-camera': case 'file-gallery': showLaunch(plan); return { status:'ready', note:'A button is on screen. Ask the person to tap it; the system opens the ' + (plan.kind === 'file-camera' ? 'camera' : 'gallery') + '.' };
+    case 'contact-pick': showLaunch(plan); return { status:'ready', note:'The person must tap the on-screen button and choose a contact; you never see their contacts.' };
+  }
+  return { status:'error', reason:'Nothing to do.' };
+}
+function tryAutoLaunch(href) {
+  return new Promise(res => { let hidden = false; const f = () => { if (document.hidden) hidden = true; }; document.addEventListener('visibilitychange', f);
+    const a = document.createElement('a'); a.href = href; a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => { document.removeEventListener('visibilitychange', f); res(hidden); }, 1700); });
+}
+async function launchLink(plan) {
+  showLaunch(plan);
+  if (navigator.userActivation && navigator.userActivation.isActive) { const opened = await tryAutoLaunch(plan.href); if (opened) { hideLaunch(); return { status:'opened' }; } }
+  return { status:'ready', note:'Chrome only lets a tap open other apps. A glowing button is on screen — ask the person to tap it. It has NOT opened yet.' + (plan.bestEffort ? ' Settings pages often cannot open from Chrome; if tapping does nothing, say the native Android version (Phase 2) will fix that.' : '') };
+}
+let launchT = 0;
+function showLaunch(plan) {
+  const box = $('#launch'); box.innerHTML = ''; const acts = document.createElement('div'); acts.className = 'acts';
+  let main;
+  if (plan.kind === 'link') { main = document.createElement('a'); main.href = plan.href; main.target = '_blank'; main.rel = 'noopener'; main.addEventListener('click', () => setTimeout(hideLaunch, 400)); }
+  else { main = document.createElement('button'); main.addEventListener('click', async () => {
+    if (plan.kind === 'file-camera') $('#fileCam').click(); else if (plan.kind === 'file-gallery') $('#fileGal').click();
+    else if (plan.kind === 'contact-pick') { const ok = await askPerm('contacts', 'Choose a contact', 'Maya never reads your contacts. Android will show its own picker and share only the one you choose, just this once.'); if (!ok) return;
+      try { const r = await navigator.contacts.select(['name', 'tel'], { multiple:false }); if (!r.length || !r[0].tel || !r[0].tel.length) { toast('No number picked.', 'err'); return; } const next = finishContactPlan(plan, r[0].tel[0]); if (!next) { toast('That number looks invalid.', 'err'); return; } showLaunch(next); }
+      catch (e) { toast('Contact picker is not available here. Tell Maya the number instead.', 'err', 4500); } } }); }
+  main.className = 'btn pri'; main.textContent = plan.kind === 'contact-pick' ? 'Choose contact' : plan.label; const x = document.createElement('button'); x.className = 'btn sm'; x.textContent = 'Dismiss'; x.onclick = hideLaunch;
+  acts.append(main, x); box.append(acts); box.hidden = false; clearTimeout(launchT); launchT = setTimeout(hideLaunch, 90000);
+}
+function hideLaunch() { $('#launch').hidden = true; clearTimeout(launchT); }
+function showPending(p) { $('#pendSum').textContent = p.summary; $('#pending').hidden = false; }
+function hidePending() { $('#pending').hidden = true; }
+$('#pendNo').onclick = () => { gate.cancel(); hidePending(); noteToModel('The person tapped Cancel on the pending action. It was not done. Acknowledge briefly in your own style.'); };
+$('#pendYes').onclick = async () => { const p = gate.approveByTap(); hidePending(); if (!p) return; const r = await runPlan(p.action, p.params);
+  noteToModel('The person tapped Confirm. Result of the action: ' + JSON.stringify(r) + '. Reply briefly and honestly in your own style.'); };
+function noteToModel(t) { if (app.mode === 'live') Live.text('[app note] ' + t); else if (app.mode === 'fallback') FB.hist.push({ role:'user', parts:[{ text:'[app note] ' + t }] }); }
+$('#fileCam').addEventListener('change', e => { if (e.target.files[0]) toast('Photo taken — it stays on this device.', 'ok'); e.target.value = ''; });
+$('#fileGal').addEventListener('change', e => { e.target.value = ''; });
+
+/* ---- Timers & alarms (in-app) ---- */
+const Timers = {
+  list:[], tick:0,
+  add(ms, label, at) { const t = { id:newId(), label, at:at || Date.now() + ms }; this.list.push(t); this.render(); if (!this.tick) this.tick = setInterval(() => this.run(), 1000); keepAwake(true); },
+  run() { const now = Date.now(); for (const t of this.list.filter(x => x.at <= now)) this.fire(t); this.list = this.list.filter(x => x.at > now); this.render(); if (!this.list.length) { clearInterval(this.tick); this.tick = 0; if (!app.active) keepAwake(false); } },
+  fire(t) { toast('⏰ ' + t.label, 'ok', 12000); try { navigator.vibrate && navigator.vibrate([400, 200, 400, 200, 400]); } catch (e) {} beep(); try { if (!app.active) { const u = new SpeechSynthesisUtterance(t.label + ' — time is up'); speechSynthesis.speak(u); } } catch (e) {} },
+  render() { const now = Date.now(); $('#timers').innerHTML = this.list.map(t => { const s = Math.max(0, Math.round((t.at - now) / 1000)); return '<span class="tm">' + t.label.replace(/</g, '&lt;') + ' · ' + (s >= 3600 ? Math.floor(s / 3600) + ':' : '') + pad(Math.floor(s % 3600 / 60)) + ':' + pad(s % 60) + '</span>'; }).join(''); }
+};
+function beep() { try { const AC = window.AudioContext || window.webkitAudioContext; const c = new AC(); let t = c.currentTime; for (let i = 0; i < 4; i++) { const o = c.createOscillator(), g = c.createGain(); o.frequency.value = 880; o.connect(g); g.connect(c.destination); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.3, t + .02); g.gain.exponentialRampToValueAtTime(.0001, t + .3); o.start(t); o.stop(t + .32); t += .45; } setTimeout(() => c.close(), 2500); } catch (e) {} }
+let wl = null;
+async function keepAwake(on) { try { if (on && S.keepAwake && navigator.wakeLock && !wl) { wl = await navigator.wakeLock.request('screen'); wl.addEventListener('release', () => { wl = null; }); } else if (!on && wl) { await wl.release(); wl = null; } } catch (e) {} }
+
+/* ---- Camera (opt-in, indicator, one frame only when asked) ---- */
+const Cam = {
+  stream:null, facing:'environment', idle:0,
+  get on() { return !!this.stream; },
+  async enable() {
+    if (!await askPerm('camera', 'Turn on camera mode?', 'Maya will only look when you ask her what she sees, and one still frame is sent to Google for that. A red indicator stays on screen while the camera is on.')) return;
+    try { this.stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:this.facing, width:{ ideal:960 } } }); } catch (e) { toast(e && e.name === 'NotAllowedError' ? 'Camera is blocked. Tap the lock icon in Chrome’s address bar → Permissions → Camera.' : 'Could not start the camera.', 'err', 5000); return; }
+    const v = $('#camVideo'); v.srcObject = this.stream; await v.play().catch(() => {}); $('#cam').classList.add('on'); $('#btnCam').classList.add('on'); this.bump(); toast('Camera on. Ask “what do you see?”', 'ok');
+  },
+  disable() { if (this.stream) this.stream.getTracks().forEach(t => t.stop()); this.stream = null; $('#camVideo').srcObject = null; $('#cam').classList.remove('on'); $('#btnCam').classList.remove('on'); clearTimeout(this.idle); },
+  bump() { clearTimeout(this.idle); this.idle = setTimeout(() => { this.disable(); toast('Camera turned off after a while.', '', 2500); }, 150000); },
+  async flip() { this.facing = this.facing === 'environment' ? 'user' : 'environment'; this.disable(); await this.enable(); },
+  frame() { const v = $('#camVideo'); if (!v.videoWidth) return null; const sc = Math.min(1, 640 / Math.max(v.videoWidth, v.videoHeight)); const c = document.createElement('canvas'); c.width = Math.round(v.videoWidth * sc); c.height = Math.round(v.videoHeight * sc); c.getContext('2d').drawImage(v, 0, 0, c.width, c.height); return c.toDataURL('image/jpeg', .72).split(',')[1]; }
+};
+async function cameraLook() {
+  if (!Cam.on) return { status:'camera_off', reason:'The camera is off. Sweetly ask the person to tap the camera button at the top first.' };
+  const b = Cam.frame(); if (!b) return { status:'not_ready', reason:'The camera is still warming up. Ask them to wait a second and ask again.' };
+  Cam.bump(); const ind = $('#camInd'); ind.textContent = '● SENDING FRAME'; setTimeout(() => { ind.textContent = '● CAMERA ON'; }, 1800);
+  if (app.mode === 'live') { Live.frame(b); return { status:'frame_sent', instruction:'You can now see one fresh camera frame. Describe it in one or two soft short sentences.' }; }
+  FB.pendingImage = b; return { status:'frame_sent', instruction:'A fresh camera frame is attached. Describe it in one or two soft short sentences.' };
+}
+
+/* ---- Fallback voice: SpeechRecognition -> Gemini text -> speechSynthesis ---- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const REC_LANG = { auto:'en-IN', bn:'bn-BD', en:'en-US', hi:'hi-IN', ur:'ur-PK', tl:'fil-PH' };
+const FB = {
+  rec:null, active:false, busy:false, speaking:false, hist:[], pendingImage:null, errs:0,
+  start() { if (!SR) { showError('nosr', 'This browser has no speech recognition. Use Chrome on Android, or type to Maya.'); endCall(true); return; } this.active = true; this.listen(); },
+  stop() { this.active = false; try { this.rec && this.rec.abort(); } catch (e) {} this.rec = null; try { speechSynthesis.cancel(); } catch (e) {} this.speaking = false; this.busy = false; },
+  listen() {
+    if (!this.active || this.busy || this.speaking || this.rec) return;
+    const r = new SR(); this.rec = r; r.lang = REC_LANG[S.lang] || 'en-IN'; r.interimResults = true; r.continuous = false; r.maxAlternatives = 1; let final = '';
+    r.onstart = () => { if (!this.busy && !this.speaking) setState('listening'); };
+    r.onresult = e => { let it = ''; for (let i = e.resultIndex; i < e.results.length; i++) { const t = e.results[i][0].transcript; if (e.results[i].isFinal) final += t; else it += t; } showYou((final + it).trim()); };
+    r.onerror = e => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { this.active = false; endCall(true); showError('mic', 'Microphone is blocked. Tap the lock icon in Chrome’s address bar → Permissions → Microphone → Allow.'); } else if (e.error === 'network') { this.errs++; toast('Speech recognition needs the internet.', 'err'); } };
+    r.onend = () => { this.rec = null; const t = final.trim(); if (t && this.active) { this.errs = 0; this.handle(t); } else if (this.active && !this.busy && !this.speaking) { setTimeout(() => this.listen(), this.errs > 2 ? 2500 : 250); } };
+    try { r.start(); } catch (e) { this.rec = null; setTimeout(() => this.listen(), 600); }
+  },
+  async handle(text) {
+    this.busy = true; setState('thinking'); gate.noteUser(text); app.transcript.push({ r:'user', t:text }); const g = gate.afterUtterance(text); if (g === 'declined' || g === 'topic_changed') hidePending();
+    this.hist.push({ role:'user', parts:[{ text }] }); if (this.hist.length > 30) this.hist = this.hist.slice(-24);
+    try { const reply = await this.turn(); if (!this.active) return; if (reply) { app.transcript.push({ r:'maya', t:reply }); await this.speak(reply); } }
+    catch (e) { if (e.fatal) { endCall(true); showError(e.kind, e.message); return; } toast(e.message || 'Something went wrong.', 'err', 4500); }
+    this.busy = false; if (this.active) this.listen();
+  },
+  async turn() {
+    let lastText = '';
+    for (let i = 0; i < 4; i++) {
+      const data = await gen({ systemInstruction:{ parts:[{ text:buildSystemPrompt({ memories:getMem(), lang:S.lang }) }] }, contents:this.hist, tools:toolDeclarations(), generationConfig:{ temperature:.9, maxOutputTokens:400 } });
+      const cand = data.candidates && data.candidates[0]; if (!cand || !cand.content || !cand.content.parts || !cand.content.parts.length) return lastText || 'Hmm… I could not answer that one.';
+      this.hist.push(cand.content); const parts = cand.content.parts; const calls = parts.filter(p => p.functionCall);
+      const text = parts.filter(p => p.text && !p.thought).map(p => p.text).join(' ').trim(); if (text) lastText = text; if (!calls.length) return text;
+      const resp = []; let failed = false;
+      for (const p of calls) { let res; if (failed) res = { status:'skipped', reason:'A previous step failed.' }; else { try { res = await runTool(p.functionCall.name, p.functionCall.args || {}); } catch (e) { res = { status:'error', reason:String(e.message || e) }; } if (p.functionCall.name === 'androidAction' && ['rejected', 'error', 'needs_info', 'expired'].includes(res.status)) failed = true; }
+        resp.push({ functionResponse:{ name:p.functionCall.name, response:{ result:res } } }); }
+      if (this.pendingImage) { resp.push({ inlineData:{ mimeType:'image/jpeg', data:this.pendingImage } }); this.pendingImage = null; }
+      this.hist.push({ role:'user', parts:resp });
+    }
+    return lastText;
+  },
+  speak(text) {
+    return new Promise(res => {
+      try { speechSynthesis.cancel(); } catch (e) {} if (!('speechSynthesis' in window)) { showSub(text); return res(); }
+      showSub(text); autoEmotion(text); const u = new SpeechSynthesisUtterance(text); const lang = detectLang(text); u.lang = lang; u.rate = .98; u.pitch = 1.15;
+      const vs = speechSynthesis.getVoices(); const pre = lang.slice(0, 2); const cands = vs.filter(v => v.lang && v.lang.replace('_', '-').toLowerCase().startsWith(pre));
+      const v = cands.find(x => /female|google|neural/i.test(x.name)) || cands[0]; if (v) u.voice = v;
+      this.speaking = true; const end = () => { this.speaking = false; Puppet.setLevel(0, false); if (app.active) setState('listening'); res(); };
+      u.onstart = () => { setState('talking'); Puppet.setLevel(0, true); }; u.onend = end; u.onerror = end; speechSynthesis.speak(u);
+    });
+  }
+};
+if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = () => {};
+
+/* ---- Call control ---- */
+function stopSpeaking() { Player.stop(); try { speechSynthesis.cancel(); } catch (e) {} if (app.mode === 'live') { app.skipAudio = true; showSub(''); } FB.speaking = false; if (app.active) setState('listening'); }
+async function startCall() {
+  if (app.active) return;
+  if (!getKey()) { showError('nokey', 'Add your free Gemini key to start.'); return; }
+  if (!navigator.onLine) { showError('offline', 'You are offline. Connect to the internet and try again.'); return; }
+  if (!await askPerm('mic', 'Let Maya hear you?', 'Maya needs your microphone to talk with you like a call. Audio goes live to Google’s Gemini; nothing is recorded or stored by this app.')) return;
+  Wake.pause(); app.active = true; app.muted = false; app.transcript = []; app.userBuf = app.aiBuf = ''; app.modelStarted = false; app.turnDone = true; app.skipAudio = false; FB.hist = []; showSub(''); showYou(''); setState('connecting'); $('#btnMute').classList.remove('on');
+  try { await Player.init(); } catch (e) {}
+  keepAwake(true);
+  if (S.engine !== 'fallback') {
+    try { await Mic.start(onMicChunk); } catch (e) { endCall(true); showError(e.kind || 'mic', e.message); return; }
+    try { await Live.open(); app.mode = 'live'; setState('listening'); Puppet.setEmotion('wave', 3000); if (Live.level === 2) toast('Connected in basic mode (no captions).', '', 3000); return; }
+    catch (e) { Mic.stop(); if (e.fatal) { endCall(true); showError(e.kind, e.message); return; } if (S.engine === 'live') { endCall(true); showError('live', e.message); return; } toast('Live voice unavailable — switching to fallback voice. ' + (e.message || '').slice(0, 80), '', 4500); }
+  }
+  app.mode = 'fallback'; setState('listening'); FB.start();
+}
+async function fallbackFromLive(why) { Live.close(); Mic.stop(); Player.stop(); app.mode = 'fallback'; toast(why + ' — using fallback voice.', 'err', 4000); setState('listening'); FB.start(); }
+function onMicChunk(i16, rms) {
+  if (app.muted || !Live.ready) return; Puppet.setLevel(Player.level(), false);
+  if (Player.playing) { if (!S.interrupt) return; if (rms < .02 * (1.5 - S.sens / 100)) return; }
+  Live.audio(i16ToB64(i16));
+}
+function endCall(silent) {
+  const wasActive = app.active; app.active = false; Live.close(); Mic.stop(); FB.stop(); Player.stop(); try { speechSynthesis.cancel(); } catch (e) {}
+  gate.cancel(); hidePending(); keepAwake(Timers.list.length > 0); hideBanner(); const tr = app.transcript.slice(); app.mode = null; app.muted = false;
+  if (!silent) setState('idle'); else if (app.state !== 'error') setState('idle'); showYou('');
+  if (wasActive) { memoryPass(tr); } Wake.sync();
+}
+async function sendTyped() {
+  const t = $('#txt').value.trim(); if (!t) return; $('#txt').value = '';
+  if (!getKey()) { showError('nokey', 'Add your free Gemini key to start.'); return; }
+  showYou(t);
+  if (app.active && app.mode === 'live') { flushUser(); app.userBuf = t; app.modelStarted = false; flushUser(); Live.text(t); setState('thinking'); return; }
+  if (app.active && app.mode === 'fallback') { if (!FB.busy) { try { FB.rec && FB.rec.abort(); } catch (e) {} FB.rec = null; FB.handle(t); } return; }
+  /* typed message without a call: one-shot text chat, spoken back */
+  if (!navigator.onLine) { showError('offline', 'You are offline.'); return; }
+  app.active = true; app.mode = 'fallback'; FB.active = true; FB.busy = true; setState('thinking'); FB.hist = FB.hist || [];
+  try { await Player.init(); } catch (e) {} FB.hist.push({ role:'user', parts:[{ text:t }] }); gate.noteUser(t); app.transcript.push({ r:'user', t });
+  try { const reply = await FB.turn(); if (reply) { app.transcript.push({ r:'maya', t:reply }); await FB.speak(reply); } } catch (e) { toast(e.message || 'Something went wrong.', e.kind === 'quota' ? '' : 'err', 4500); if (e.kind === 'badkey' || e.kind === 'nokey') showError(e.kind, e.message); }
+  FB.active = false; FB.busy = false; app.active = false; app.mode = null; setState('idle'); memoryPass(app.transcript.slice());
+}
+
+/* ---- Memory ---- */
+async function memoryPass(tr) {
+  try {
+    const turns = tr.filter(x => x.r === 'user'); if (turns.length < 2 || !getKey() || !navigator.onLine) return;
+    const mem = getMem(); const convo = tr.slice(-40).map(x => (x.r === 'user' ? 'USER: ' : 'MAYA: ') + x.t).join('\n');
+    const prompt = `You maintain the long-term memory of a voice companion app.\nCurrent memories (id: text):\n${mem.map(m => m.id + ': ' + m.text).join('\n') || '(none)'}\n\nLatest conversation:\n${convo}\n\nPropose changes ONLY for clear, durable facts the USER stated about themselves (name, likes/dislikes, people in their life, plans, routines). Do not store moods or one-off feelings, and never store secrets, passwords, PINs, OTPs, card/account/ID numbers. Write each fact in English, short, third person (e.g. "Likes mango juice"), keeping names as spoken. Reply with JSON only: {"add":[{"text":"","category":"name|like|dislike|person|plan|routine|other","confidence":"high|low"}],"update":[{"id":"","text":"","confidence":"high|low"}],"remove":[{"id":"","confidence":"high|low"}]}. Use empty arrays when unsure.`;
+    const d = await gen({ contents:[{ role:'user', parts:[{ text:prompt }] }], generationConfig:{ temperature:.1, maxOutputTokens:700, responseMimeType:'application/json' } });
+    const txt = (d.candidates && d.candidates[0] && d.candidates[0].content.parts.filter(p => p.text && !p.thought).map(p => p.text).join('')) || ''; const ops = JSON.parse(txt.replace(/```json|```/g, '').trim());
+    const r = applyMemoryOps(getMem(), ops, Date.now(), newId); const n = r.counts.add + r.counts.update + r.counts.remove;
+    if (n) { setMem(r.list); toast('Memory updated (' + [r.counts.add && '+' + r.counts.add, r.counts.update && '~' + r.counts.update, r.counts.remove && '−' + r.counts.remove].filter(Boolean).join(' ') + ')', 'ok'); }
+  } catch (e) { console.warn('memory pass skipped', e); }
+}
+function renderMem() {
+  const L = getMem(); const box = $('#memList'); box.innerHTML = ''; if (!L.length) { box.innerHTML = '<div class="empty">Nothing yet. Tell Maya about yourself and she will remember.</div>'; return; }
+  L.slice().reverse().forEach(m => { const row = document.createElement('div'); row.className = 'mem'; const inp = document.createElement('input'); inp.className = 'inp'; inp.value = m.text; inp.maxLength = 200;
+    inp.onchange = () => { const c = cleanFact(inp.value); if (!c.ok) { toast('Not saved: ' + c.reason, 'err', 4000); inp.value = m.text; return; } const l = getMem(); const i = l.findIndex(x => x.id === m.id); if (i >= 0) { l[i].text = c.text; setMem(l); toast('Saved', 'ok', 1200); } };
+    const del = document.createElement('button'); del.textContent = '✕'; del.setAttribute('aria-label', 'Delete memory'); del.onclick = () => { setMem(getMem().filter(x => x.id !== m.id)); renderMem(); };
+    row.append(inp, del); box.append(row); });
+}
+$('#memAdd').onclick = () => { const r = addMemoryItem(getMem(), $('#memNew').value, 'other', Date.now(), newId); if (r.status === 'saved') { setMem(r.list); $('#memNew').value = ''; renderMem(); } else toast(r.status === 'duplicate' ? 'Already remembered.' : 'Not saved: ' + r.reason, 'err', 3500); };
+$('#memExport').onclick = () => { const blob = new Blob([JSON.stringify({ app:'maya', exported:new Date().toISOString(), memories:getMem() }, null, 2)], { type:'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'maya-memories.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); };
+$('#memImport').onclick = () => $('#fileImp').click();
+$('#fileImp').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return; try { const j = JSON.parse(await f.text()); let L = getMem(), n = 0; for (const m of (j.memories || [])) { const r = addMemoryItem(L, m.text, m.category, Date.now(), newId); if (r.status === 'saved') { L = r.list; n++; } } setMem(L); renderMem(); toast('Imported ' + n + ' memories', 'ok'); } catch (err) { toast('That file is not a Maya memory export.', 'err'); } };
+$('#memClear').onclick = async () => { if (await ask('Clear all memories?', 'Maya will forget everything she has saved about you. This cannot be undone.', 'Clear', 'Keep')) { setMem([]); renderMem(); } };
+
+/* ---- API key manager ---- */
+function keyMsg(t, k) { const m = $('#keyMsg'); m.textContent = t; m.className = 'msg ' + (k || ''); }
+function renderKey() { const k = getKey(); $('#keyState').textContent = k ? 'Saved on this device: ••••' + k.slice(-4) : 'No key yet — get a free one at aistudio.google.com/apikey'; $('#keyInput').value = ''; $('#keyInput').placeholder = k ? 'Paste a new key to replace' : 'Paste your free Gemini key'; }
+async function testKey(k) {
+  keyMsg('Testing…'); if (!navigator.onLine) { keyMsg('You are offline.', 'err'); return false; }
+  try { const all = await fetchModels(k); const c = { live:pickLiveModels(all), text:pickTextModels(all), at:Date.now() }; LS.set('models', c);
+    keyMsg('Key works ✓  Live voice model: ' + (c.live[0] || 'none found (fallback voice will be used)') + (c.text[0] ? ' · Text model: ' + c.text[0] : ''), 'ok'); return true; }
+  catch (e) { if (e.status === 400 || e.status === 401) keyMsg('Google rejected this key. Check you copied all of it.', 'err'); else if (e.status === 403) keyMsg('Key not allowed (restrictions or region). Create a fresh key in Google AI Studio.', 'err'); else if (e.status === 429) keyMsg('Key is valid but the free quota is used up for now.', 'err'); else keyMsg('Could not reach Google: ' + (e.message || 'network error').slice(0, 100), 'err'); return false; }
+}
+$('#keySave').onclick = async () => { const v = $('#keyInput').value.trim(); if (v.length < 20 || /\s/.test(v)) { keyMsg('That does not look like a Gemini key. Paste the whole key.', 'err'); return; } const prev = getKey(); LS.set('key', v); LS.del('models'); renderKey(); const ok = await testKey(v); if (!ok && prev && (await ask('Key did not pass the test', 'Keep the new key anyway, or go back to the old one?', 'Keep new', 'Restore old')) === false) { LS.set('key', prev); renderKey(); keyMsg('Old key restored.'); } };
+$('#keyTest').onclick = () => { const v = $('#keyInput').value.trim() || getKey(); if (!v) { keyMsg('Paste a key first.', 'err'); return; } testKey(v); };
+$('#keyReplace').onclick = () => { $('#keyInput').focus(); keyMsg('Paste the new key above, then tap Save key.'); };
+$('#keyRemove').onclick = async () => { if (!getKey()) { keyMsg('There is no key to remove.'); return; } if (await ask('Remove your key?', 'It will be erased from this device. Maya can’t talk until you add one again.', 'Remove', 'Keep')) { LS.del('key'); LS.del('models'); renderKey(); keyMsg('Key removed.', 'ok'); if (app.active) endCall(); } };
+$('#resetAll').onclick = async () => { if (await ask('Erase all data?', 'This deletes your key, memories and settings from this device.', 'Erase', 'Cancel')) { endCall(true); Object.keys(localStorage).filter(k => k.startsWith('maya.')).forEach(k => localStorage.removeItem(k)); location.reload(); } };
+
+/* ---- Wake word (web version: only while this page is open) ---- */
+const Wake = {
+  rec:null, on:false, last:0, paused:false,
+  async sync() { const want = S.wake && !app.active && !this.paused && SR; if (S.wake && !SR) { toast('Wake word needs Chrome speech recognition.', 'err'); S.wake = false; saveS(); const el = $('[data-set=wake]'); if (el) el.checked = false; }
+    if (want && !this.on) { if (!await askPerm('wake', 'Turn on the wake word?', 'While this page is open, Maya listens for “' + S.wakePhrase + '” using Chrome’s speech recognition. A red “Listening for wake phrase” badge stays on top the whole time; tap it to turn it off.')) { S.wake = false; saveS(); const el = $('[data-set=wake]'); if (el) el.checked = false; return; } this.begin(); }
+    else if (!want && this.on) this.end(); this.badge(); },
+  pause() { this.paused = true; this.end(); this.badge(); }, 
+  badge() { if (this.on && !app.active) { $('#chip').dataset.s = 'wake'; $('#chipText').textContent = 'Listening for “' + S.wakePhrase + '” · tap to stop'; } else if (!app.active && app.state === 'idle') { $('#chip').dataset.s = 'idle'; $('#chipText').textContent = CHIP.idle; } },
+  begin() { this.on = true; this.paused = false; this.loop(); },
+  end() { this.on = false; try { this.rec && this.rec.abort(); } catch (e) {} this.rec = null; },
+  loop() { if (!this.on || app.active || document.hidden) return; const r = new SR(); this.rec = r; r.lang = REC_LANG[S.lang] || 'en-US'; r.continuous = true; r.interimResults = true;
+    r.onresult = e => { const t = normText(Array.from(e.results).slice(-2).map(x => x[0].transcript).join(' ')); const ph = normText(S.wakePhrase || 'hey maya'); if (ph && t.includes(ph) && Date.now() - this.last > 4000) { this.last = Date.now(); this.end(); startCall(); } };
+    r.onerror = e => { if (e.error === 'not-allowed') { S.wake = false; saveS(); this.end(); this.badge(); toast('Microphone is blocked, wake word is off.', 'err'); } };
+    r.onend = () => { this.rec = null; if (this.on && !app.active) setTimeout(() => this.loop(), 500); }; try { r.start(); } catch (e) { setTimeout(() => this.loop(), 800); } }
+};
+$('#chip').onclick = () => { if (Wake.on && !app.active) { S.wake = false; saveS(); $('[data-set=wake]').checked = false; Wake.sync(); toast('Wake word off', 'ok', 1500); } else if (app.state === 'error') { setState(app.active ? 'listening' : 'idle'); } };
+
+/* ---- wiring ---- */
+$('#mic').onclick = () => { if (app.active) endCall(); else startCall(); };
+$('#btnStop').onclick = stopSpeaking;
+$('#btnMute').onclick = () => { app.muted = !app.muted; $('#btnMute').classList.toggle('on', app.muted); toast(app.muted ? 'Mic muted' : 'Mic on', '', 1200); };
+$('#send').onclick = sendTyped; $('#txt').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendTyped(); } });
+$('#btnSet').onclick = () => openSheet('setSheet'); $('#btnMem').onclick = () => openSheet('memSheet'); $('#openMem').onclick = () => { closeSheet('setSheet'); openSheet('memSheet'); };
+$$('[data-close]').forEach(b => b.onclick = () => closeSheet(b.dataset.close)); $$('.sheet').forEach(s => s.addEventListener('click', e => { if (e.target === s && s.id !== 'dlg') s.classList.remove('open'); }));
+$('#btnCam').onclick = () => { if (Cam.on) Cam.disable(); else Cam.enable(); }; $('#camFlip').onclick = () => Cam.flip();
+addEventListener('offline', () => { showBanner('You are offline. Maya will reconnect when the internet is back.'); });
+addEventListener('online', () => { hideBanner(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (app.active && app.mode === 'live' && !Live.ready && !Live.reconnecting) Live.reconnect(); if (S.wake && !app.active) Wake.sync(); if (app.active || Timers.list.length) keepAwake(true); } });
+setInterval(() => { // keep UI state in step with audio
+  if (!app.active || app.mode !== 'live') return; const lvl = Player.level(); if (Player.playing) { Puppet.setLevel(lvl, false); if (app.state !== 'talking') setState('talking'); }
+  else if (app.state === 'talking' && (app.turnDone || performance.now() - app.lastAudioAt > 1300)) { Puppet.setLevel(0, false); setState('listening'); }
+}, 60);
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
+bindSettings(); applyTheme(); renderKey(); if (!SR) $('[data-set=wake]').disabled = true;
+if (!getKey()) { showSub('Hi… I’m Maya. Add your free Gemini key in Settings, and we can talk.'); } else { showSub('Tap the mic and talk to me…'); }
+if (S.wake) setTimeout(() => Wake.sync(), 600);
+</script>
+</body>
+</html>
